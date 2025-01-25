@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>T2DM Health Plan Decision Aid (Preference-Space Model)</title>
+  <title>T2DM Health Plan Decision Aid</title>
   <link rel="stylesheet" href="styles.css" />
   <!-- Load Chart.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,138 +15,81 @@
   </header>
   
   <main>
-    <!-- Tab Navigation -->
-    <div class="tab">
-      <button class="tablinks" onclick="openTab(event, 'Instructions')" id="defaultOpen">Instructions</button>
-      <button class="tablinks" onclick="openTab(event, 'Input')">Input</button>
-      <button class="tablinks" onclick="openTab(event, 'Results')">Results</button>
-      <button class="tablinks" onclick="openTab(event, 'Downloads')">Downloads</button>
-    </div>
-
-    <!-- Instructions Tab -->
-    <div id="Instructions" class="tabcontent">
-      <section id="instructions">
-        <h2>Instructions</h2>
-        <p>
-          Welcome to the T2DM Health Plan Decision Aid. This tool utilizes a latent class model to predict the probability of a patient choosing a specific health plan versus opting out based on their characteristics and treatment attributes.
-        </p>
-        <ul>
-          <li><strong>Experiment 1:</strong> Only self-focused attributes are considered.</li>
-          <li><strong>Experiment 2:</strong> Considers both self and others in poorer health with equal health outcomes.</li>
-          <li><strong>Experiment 3:</strong> Compares self versus others in poorer health with unequal health outcomes.</li>
-        </ul>
-        <p>
-          To use the tool:
-        </p>
-        <ol>
-          <li>Navigate to the <strong>Input</strong> tab.</li>
-          <li>Enter the patient's demographic information.</li>
-          <li>Select the relevant experiment scenario.</li>
-          <li>Adjust the treatment attributes using sliders.</li>
-          <li>Click the <strong>Predict Plan Uptake</strong> button.</li>
-          <li>Review the results in the <strong>Results</strong> tab.</li>
-        </ol>
-        <p>
-          For detailed explanations and recommendations, visit the <strong>Downloads</strong> tab.
-        </p>
-      </section>
-    </div>
-
-    <!-- Input Tab -->
-    <div id="Input" class="tabcontent">
-      <section id="input-form">
-        <h2>Patient Characteristics</h2>
-        <p class="note">
-          Hover/tap each label for details. Required fields have default or min/max values.
-        </p>
-
+    <!-- Input and Results Section -->
+    <section id="input-results">
+      <div id="input-section">
+        <h2>Patient Characteristics & Plan Attributes</h2>
         <form id="decisionForm">
-          <!-- Age -->
-          <label for="age" title="Patient's age in years (18-120).">
-            Age:
-          </label>
-          <input 
-            type="number" 
-            id="age" 
-            name="age" 
-            min="18" max="120" 
-            placeholder="e.g. 50" 
-            required
-          />
+          <!-- Demographics -->
+          <div class="form-group">
+            <label for="age" title="Patient's age in years (18-120).">Age:</label>
+            <input 
+              type="number" 
+              id="age" 
+              name="age" 
+              min="18" max="120" 
+              placeholder="e.g., 50" 
+              required
+            />
+          </div>
 
-          <!-- Gender -->
-          <label for="gender" title="Biological sex at birth.">
-            Gender:
-          </label>
-          <select id="gender" name="gender">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
+          <div class="form-group">
+            <label for="gender" title="Biological sex at birth.">Gender:</label>
+            <select id="gender" name="gender">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
 
-          <!-- Race -->
-          <label for="race" title="Race/Ethnicity (used in membership).">
-            Race:
-          </label>
-          <select id="race" name="race">
-            <option value="other">Other/Not listed</option>
-            <option value="white">White</option>
-            <option value="black">Black</option>
-          </select>
+          <div class="form-group">
+            <label for="race" title="Race/Ethnicity (used in membership).">Race:</label>
+            <select id="race" name="race">
+              <option value="other">Other/Not listed</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+            </select>
+          </div>
 
-          <!-- Income -->
-          <label for="income" title="High or Low Income group.">
-            Income Group:
-          </label>
-          <select id="income" name="income">
-            <option value="low">Low Income</option>
-            <option value="high">High Income</option>
-          </select>
+          <div class="form-group">
+            <label for="income" title="High or Low Income group.">Income Group:</label>
+            <select id="income" name="income">
+              <option value="low">Low Income</option>
+              <option value="high">High Income</option>
+            </select>
+          </div>
 
-          <!-- Degree -->
-          <label for="degree" title="Has a Degree or Higher qualification?">
-            Degree or Higher:
-          </label>
-          <select id="degree" name="degree">
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
+          <div class="form-group">
+            <label for="degree" title="Has a Degree or Higher qualification?">Degree or Higher:</label>
+            <select id="degree" name="degree">
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
 
-          <!-- Good Health -->
-          <label for="goodHealth" title="Self-reported good health?">
-            Self-Reported Good Health:
-          </label>
-          <select id="goodHealth" name="goodHealth">
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
-
-          <hr />
-
-          <h2>Experiment &amp; Plan Attributes</h2>
-          <p class="note">
-            <strong>Experiment:</strong> determines which attributes are relevant.<br/>
-            For Exp1 &amp; Exp2, “Others” attributes are disabled (set to zero).<br/>
-            For Exp3, “Others” attributes are enabled and can be adjusted.
-          </p>
+          <div class="form-group">
+            <label for="goodHealth" title="Self-reported good health?">Self-Reported Good Health:</label>
+            <select id="goodHealth" name="goodHealth">
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
 
           <!-- Experiment Selection -->
-          <label for="experiment" title="Choose Experiment 1, 2, or 3.">
-            Experiment:
-          </label>
-          <select id="experiment" name="experiment">
-            <option value="1">Exp 1 (Self-Focused)</option>
-            <option value="2">Exp 2 (Self &amp; Others, Equal Outcomes)</option>
-            <option value="3">Exp 3 (Self vs. Others, Unequal Outcomes)</option>
-          </select>
+          <div class="form-group">
+            <label for="experiment" title="Choose Experiment 1, 2, or 3.">Experiment:</label>
+            <select id="experiment" name="experiment">
+              <option value="1">Exp 1 (Self-Focused)</option>
+              <option value="2">Exp 2 (Self &amp; Others, Equal Outcomes)</option>
+              <option value="3">Exp 3 (Self vs. Others, Unequal Outcomes)</option>
+            </select>
+          </div>
+
+          <!-- Plan Attributes -->
+          <h3>Plan Attributes</h3>
 
           <!-- Efficacy (Self) -->
           <div class="slider-container">
-            <label 
-              for="efficacySelf" 
-              title="Efficacy for self, 0-100 scale"
-            >
-              Efficacy (Self):
-            </label>
+            <label for="efficacySelf" title="Efficacy for self, 0-100 scale">Efficacy (Self):</label>
             <input 
               type="range" 
               id="efficacySelf" 
@@ -158,12 +101,7 @@
 
           <!-- Risk (Self) -->
           <div class="slider-container">
-            <label 
-              for="riskSelf" 
-              title="Risk of side effects for self (0-100%)."
-            >
-              Risk (Self, %):
-            </label>
+            <label for="riskSelf" title="Risk of side effects for self (0-100%).">Risk (Self, %):</label>
             <input 
               type="range" 
               id="riskSelf" 
@@ -175,16 +113,11 @@
 
           <!-- Cost (Self) -->
           <div class="slider-container">
-            <label 
-              for="costSelf" 
-              title="Cost for self, 0-9999 in $"
-            >
-              Cost (Self, $):
-            </label>
+            <label for="costSelf" title="Cost for self, 0-2000 in $">Cost (Self, $):</label>
             <input 
               type="range" 
               id="costSelf" 
-              min="0" max="9999" step="50" 
+              min="0" max="2000" step="50" 
               value="200"
             />
             <span id="costSelfValue" class="slider-value">200</span>
@@ -192,12 +125,7 @@
 
           <!-- Efficacy (Others) -->
           <div class="slider-container">
-            <label 
-              for="efficacyOthers" 
-              title="Efficacy for others in Exp 3. 0-100 scale."
-            >
-              Efficacy (Others):
-            </label>
+            <label for="efficacyOthers" title="Efficacy for others in Exp 3. 0-100 scale">Efficacy (Others):</label>
             <input 
               type="range" 
               id="efficacyOthers" 
@@ -209,12 +137,7 @@
 
           <!-- Risk (Others) -->
           <div class="slider-container">
-            <label 
-              for="riskOthers" 
-              title="Risk of side effects for others (0-100%)."
-            >
-              Risk (Others, %):
-            </label>
+            <label for="riskOthers" title="Risk of side effects for others (0-100%).">Risk (Others, %):</label>
             <input 
               type="range" 
               id="riskOthers" 
@@ -226,31 +149,23 @@
 
           <!-- Cost (Others) -->
           <div class="slider-container">
-            <label 
-              for="costOthers" 
-              title="Cost for others in Exp 3, 0-9999 in $."
-            >
-              Cost (Others, $):
-            </label>
+            <label for="costOthers" title="Cost for others in Exp 3, 0-2000 in $">Cost (Others, $):</label>
             <input 
               type="range" 
               id="costOthers" 
-              min="0" max="9999" step="50" 
+              min="0" max="2000" step="50" 
               value="100"
             />
             <span id="costOthersValue" class="slider-value">100</span>
           </div>
 
           <button type="button" id="predictBtn">Predict Plan Uptake</button>
+          <button type="button" id="saveBtn">Save Result</button>
         </form>
-      </section>
-    </div>
+      </div>
 
-    <!-- Results Tab -->
-    <div id="Results" class="tabcontent">
-      <section id="results">
+      <div id="results-section">
         <h2>Results</h2>
-
         <div id="classInfo">
           <h3>Class Membership Probabilities</h3>
           <canvas id="membershipChart" width="400" height="200"></canvas>
@@ -262,22 +177,38 @@
           <canvas id="uptakeChart" width="400" height="200"></canvas>
           <pre id="uptakeProbability"></pre>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <!-- Downloads Tab -->
-    <div id="Downloads" class="tabcontent">
-      <section id="downloads">
-        <h2>Downloads</h2>
-        <p>
-          Access detailed explanations and recommendations in the downloadable PDFs below:
-        </p>
-        <ul>
-          <li><a href="instructions.pdf" download>Instructions and Guide</a></li>
-          <li><a href="recommendations.pdf" download>Interpretation and Recommendations</a></li>
-        </ul>
-      </section>
-    </div>
+    <!-- Additional Tabs -->
+    <section id="additional-tabs">
+      <div class="tab">
+        <button class="tablinks" onclick="openAdditionalTab(event, 'WTP')" id="wtpTab">WTP</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'Comparison')">Comparison</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'SavedResults')">Saved Results</button>
+      </div>
+
+      <!-- WTP Tab -->
+      <div id="WTP" class="tabcontent">
+        <h2>Willingness To Pay (WTP)</h2>
+        <canvas id="wtpChart" width="400" height="200"></canvas>
+      </div>
+
+      <!-- Comparison Tab -->
+      <div id="Comparison" class="tabcontent">
+        <h2>Comparison of Scenarios</h2>
+        <canvas id="comparisonChart" width="600" height="400"></canvas>
+      </div>
+
+      <!-- Saved Results Tab -->
+      <div id="SavedResults" class="tabcontent">
+        <h2>Saved Results</h2>
+        <div id="savedResultsContainer">
+          <ul id="savedResultsList"></ul>
+        </div>
+        <button type="button" id="clearSavedBtn">Clear Saved Results</button>
+      </div>
+    </section>
   </main>
 
   <footer>
