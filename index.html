@@ -3,49 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>T2DM Health Plan Decision Aid</title>
+  <title>T2DM Health Plan Decision Aid (Preference-Space Model)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
     <h1>T2DM Health Plan Decision Aid</h1>
+    <p>Using Preference-Space Latent Class Coefficients</p>
   </header>
   
   <main>
     <section id="instructions">
       <p>
-        This tool uses the latent class model results (Table 3) from the T2DM study. 
-        Enter patient characteristics and plan attributes to see:
+        This tool implements the latent class model from three experiments 
+        (in preference space), reflecting how individuals trade off efficacy, 
+        risk, and cost for T2DM treatments. 
       </p>
       <ul>
-        <li>Which class (e.g., <em>Risk-Averse</em>, <em>Cost-Sensitive</em>, 
-            <em>Equity-Focused</em>, <em>Self-Focused</em>) the patient is 
-            most likely to belong to.</li>
-        <li>The predicted probability of choosing a given health plan 
-            (vs. opting out).</li>
+        <li><strong>Experiment 1:</strong> Only self-focused attributes.</li>
+        <li><strong>Experiment 2:</strong> Self &amp; others in poorer health, 
+            but outcomes are equal (so there are no separate “others” parameters).</li>
+        <li><strong>Experiment 3:</strong> Self vs. others in poorer health with 
+            unequal outcomes (includes separate “others” parameters).</li>
       </ul>
+      <p>
+        Enter the patient's demographic profile, select an experiment, and 
+        adjust attribute sliders/inputs to see the predicted class membership 
+        and plan uptake probability versus opting out.
+      </p>
     </section>
 
     <section id="input-form">
       <form id="decisionForm">
         <h2>Patient Characteristics</h2>
         <p class="note">
-          Hover over each label for more details.
+          Hover/tap each label for details. Required fields have default or min/max values. 
         </p>
 
         <!-- Age -->
-        <label for="age" title="Age in years (e.g., 50)">Age:</label>
+        <label for="age" title="Patient's age in years (18-120).">
+          Age:
+        </label>
         <input 
           type="number" 
           id="age" 
           name="age" 
           min="18" max="120" 
-          placeholder="e.g., 50" 
+          placeholder="e.g. 50" 
           required
         />
 
         <!-- Gender -->
-        <label for="gender" title="Biological sex at birth">
+        <label for="gender" title="Female or Male.">
           Gender:
         </label>
         <select id="gender" name="gender">
@@ -54,7 +63,7 @@
         </select>
 
         <!-- Race -->
-        <label for="race" title="Race/Ethnicity. Used in class membership.">
+        <label for="race" title="Race/Ethnicity (used in membership).">
           Race:
         </label>
         <select id="race" name="race">
@@ -64,7 +73,7 @@
         </select>
 
         <!-- Income -->
-        <label for="income" title="High Income vs. Low Income as per study cutoffs">
+        <label for="income" title="High or Low Income group.">
           Income Group:
         </label>
         <select id="income" name="income">
@@ -72,8 +81,8 @@
           <option value="high">High Income</option>
         </select>
 
-        <!-- Education -->
-        <label for="degree" title="Whether the patient has a Degree or Higher qualification">
+        <!-- Degree -->
+        <label for="degree" title="Has a Degree or Higher qualification?">
           Degree or Higher:
         </label>
         <select id="degree" name="degree">
@@ -82,10 +91,7 @@
         </select>
 
         <!-- Good Health -->
-        <label 
-          for="goodHealth" 
-          title="Whether the patient self-reports 'Good Health'"
-        >
+        <label for="goodHealth" title="Self-reported good health?">
           Self-Reported Good Health:
         </label>
         <select id="goodHealth" name="goodHealth">
@@ -95,133 +101,124 @@
 
         <hr />
 
-        <h2>Plan Attributes</h2>
+        <h2>Experiment &amp; Plan Attributes</h2>
         <p class="note">
-          Please enter values within plausible ranges.<br/>
-          <strong>Efficacy:</strong> Gains from treatment.<br/>
-          <strong>Risk:</strong> Likelihood (%) of adverse side effects.<br/>
-          <strong>Cost:</strong> Out-of-pocket or premium amount (in $).
+          <strong>Experiment:</strong> determines which attributes are relevant.<br/>
+          For Exp1 &amp; Exp2, “Others” attributes are disabled (set to zero).<br/>
+          For Exp3, “Others” attributes are enabled and can be adjusted.
         </p>
 
-        <!-- Efficacy (Self) -->
-        <label 
-          for="efficacySelf" 
-          title="Efficacy for self: e.g., additional percentage improvement or benefit level."
-        >
-          Efficacy (Self) [0 - 100]:
-        </label>
-        <input 
-          type="number" 
-          step="0.1" 
-          id="efficacySelf" 
-          name="efficacySelf" 
-          min="0" max="100" 
-          placeholder="e.g., 30" 
-          required
-        />
-        
-        <!-- Risk (Self) -->
-        <label 
-          for="riskSelf" 
-          title="Percentage risk (0 to 100) of side effects for the patient."
-        >
-          Risk (Self) [0 - 100]:
-        </label>
-        <input 
-          type="number" 
-          step="0.1" 
-          id="riskSelf" 
-          name="riskSelf" 
-          min="0" max="100" 
-          placeholder="e.g., 10" 
-          required
-        />
-
-        <!-- Cost (Self) -->
-        <label 
-          for="costSelf" 
-          title="Estimated cost for the patient (in $)."
-        >
-          Cost (Self) [0 - 9999]:
-        </label>
-        <input 
-          type="number" 
-          step="0.01" 
-          id="costSelf" 
-          name="costSelf" 
-          min="0" max="9999" 
-          placeholder="e.g., 100" 
-          required
-        />
-
-        <!-- Efficacy (Others) -> relevant in Exp 3, but we allow input for completeness -->
-        <label 
-          for="efficacyOthers" 
-          title="Efficacy for others (e.g., additional benefit level for others). Only used in Exp3 calculations."
-        >
-          Efficacy (Others) [0 - 100]:
-        </label>
-        <input 
-          type="number" 
-          step="0.1" 
-          id="efficacyOthers" 
-          name="efficacyOthers" 
-          min="0" max="100" 
-          placeholder="0 if not relevant" 
-          required
-        />
-
-        <!-- Risk (Others) -->
-        <label 
-          for="riskOthers" 
-          title="Percentage risk of side effects for others. Only used in Exp3."
-        >
-          Risk (Others) [0 - 100]:
-        </label>
-        <input 
-          type="number" 
-          step="0.1" 
-          id="riskOthers" 
-          name="riskOthers" 
-          min="0" max="100" 
-          placeholder="0 if not relevant" 
-          required
-        />
-
-        <!-- Cost (Others) -->
-        <label 
-          for="costOthers" 
-          title="Cost (in $) for others or for the 'shared' portion. Only used in Exp3."
-        >
-          Cost (Others) [0 - 9999]:
-        </label>
-        <input 
-          type="number" 
-          step="0.01" 
-          id="costOthers" 
-          name="costOthers" 
-          min="0" max="9999" 
-          placeholder="0 if not relevant" 
-          required
-        />
-
-        <hr />
-
-        <h2>Experiment Scenario</h2>
-        <p>
-          Please select the experiment that corresponds to the scenario you wish to model:
-        </p>
-        <label 
-          for="experiment" 
-          title="Experiment 1: Self-Focused, Experiment 2: Equal Health Outcomes, Experiment 3: Unequal Health Outcomes."
-        >
+        <!-- Experiment Selection -->
+        <label for="experiment" title="Choose Experiment 1, 2, or 3.">
           Experiment:
         </label>
         <select id="experiment" name="experiment">
-          <option value="1">Experiment 1 (Self-Focused)</option>
-          <option value="2">Experiment 2 (Equal Health Outcomes)</option>
-          <option value="3">Experiment 3 (Unequal Health Outcomes)</option>
+          <option value="1">Exp 1 (Self-Focused)</option>
+          <option value="2">Exp 2 (Self &amp; Others, Equal Outcomes)</option>
+          <option value="3">Exp 3 (Self vs. Others, Unequal Outcomes)</option>
         </select>
+
+        <!-- Efficacy (Self) -->
+        <div class="slider-container">
+          <label 
+            for="efficacySelf" 
+            title="Efficacy for self, 0-100 scale"
+          >
+            Efficacy (Self):
+          </label>
+          <input 
+            type="range" 
+            id="efficacySelf" 
+            min="0" max="100" step="1" 
+            value="30"
+          />
+          <span id="efficacySelfValue" class="slider-value">30</span>
+        </div>
+
+        <!-- Risk (Self) -->
+        <div class="slider-container">
+          <label 
+            for="riskSelf" 
+            title="Risk of side effects for self (0-100%)."
+          >
+            Risk (Self, %):
+          </label>
+          <input 
+            type="range" 
+            id="riskSelf" 
+            min="0" max="100" step="1" 
+            value="10"
+          />
+          <span id="riskSelfValue" class="slider-value">10</span>
+        </div>
+
+        <!-- Cost (Self) -->
+        <div class="slider-container">
+          <label 
+            for="costSelf" 
+            title="Cost for self, 0-9999 in $"
+          >
+            Cost (Self, $):
+          </label>
+          <input 
+            type="range" 
+            id="costSelf" 
+            min="0" max="9999" step="50" 
+            value="200"
+          />
+          <span id="costSelfValue" class="slider-value">200</span>
+        </div>
+
+        <!-- Efficacy (Others) -->
+        <div class="slider-container">
+          <label 
+            for="efficacyOthers" 
+            title="Efficacy for others in Exp 3. 0-100 scale."
+          >
+            Efficacy (Others):
+          </label>
+          <input 
+            type="range" 
+            id="efficacyOthers" 
+            min="0" max="100" step="1" 
+            value="10"
+          />
+          <span id="efficacyOthersValue" class="slider-value">10</span>
+        </div>
+
+        <!-- Risk (Others) -->
+        <div class="slider-container">
+          <label 
+            for="riskOthers" 
+            title="Risk of side effects for others (0-100%)."
+          >
+            Risk (Others, %):
+          </label>
+          <input 
+            type="range" 
+            id="riskOthers" 
+            min="0" max="100" step="1" 
+            value="5"
+          />
+          <span id="riskOthersValue" class="slider-value">5</span>
+        </div>
+
+        <!-- Cost (Others) -->
+        <div class="slider-container">
+          <label 
+            for="costOthers" 
+            title="Cost for others in Exp 3, 0-9999 in $."
+          >
+            Cost (Others, $):
+          </label>
+          <input 
+            type="range" 
+            id="costOthers" 
+            min="0" max="9999" step="50" 
+            value="100"
+          />
+          <span id="costOthersValue" class="slider-value">100</span>
+        </div>
 
         <button type="button" id="predictBtn">Predict Plan Uptake</button>
       </form>
@@ -229,19 +226,23 @@
 
     <section id="results">
       <h2>Results</h2>
+
       <div id="classInfo">
         <h3>Class Membership Probabilities</h3>
+        <canvas id="membershipChart" width="400" height="200"></canvas>
         <pre id="classProbabilities"></pre>
       </div>
+      
       <div id="uptakeInfo">
-        <h3>Predicted Probability of Plan Uptake vs. Opt-Out</h3>
+        <h3>Plan Uptake vs. Opt-Out</h3>
+        <canvas id="uptakeChart" width="400" height="200"></canvas>
         <pre id="uptakeProbability"></pre>
       </div>
     </section>
   </main>
 
   <footer>
-    <p>T2DM Health Plan Decision Aid. Built for demonstration purposes.</p>
+    <p>T2DM Decision Aid (Preference-Space LC). Built for demonstration.</p>
   </footer>
 
   <script src="script.js"></script>
