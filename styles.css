@@ -1,4 +1,4 @@
-/* Basic CSS reset */
+/* Basic Reset */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -7,10 +7,10 @@
 
 body {
   font-family: Arial, sans-serif;
-  margin: 0 auto;
-  max-width: 960px;
   background: #fafafa;
   color: #333;
+  margin: 0 auto;
+  max-width: 980px;
 }
 
 /* Header */
@@ -21,9 +21,16 @@ header {
   text-align: center;
 }
 
-/* Main container */
+/* Main Container */
 main {
   padding: 1rem;
+}
+
+/* Instructions */
+#instructions ul {
+  margin-left: 1.5rem;
+  list-style-type: disc;
+  margin-top: 0.5rem;
 }
 
 /* Section styling */
@@ -34,46 +41,62 @@ section {
   border-radius: 4px;
 }
 
-/* Headings */
 section h2 {
   margin-bottom: 0.5rem;
 }
 
-/* Instructions */
-#instructions ul {
-  margin-left: 1rem;
-  list-style-type: disc;
-  margin-top: 0.5rem;
-}
-
-/* Form styling */
+/* Forms */
 #decisionForm {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
-#decisionForm label {
-  margin-top: 1rem;
-  font-weight: bold;
-  cursor: help; /* indicates there's a tooltip */
-}
-
-#decisionForm input,
-#decisionForm select {
-  margin-top: 0.25rem;
-  padding: 0.5rem;
-  font-size: 1rem;
-}
-
-#decisionForm .note {
+.note {
   font-size: 0.9rem;
   color: #555;
-  margin-top: 1rem;
 }
 
-/* Button styling */
+/* Labels and inputs */
+label {
+  font-weight: bold;
+  margin-top: 0.5rem;
+  cursor: help; /* indicate tooltip */
+}
+
+select, input[type="number"] {
+  padding: 0.4rem;
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+  width: 200px;
+}
+
+/* Sliders */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slider-container label {
+  margin-top: 0;
+  width: 180px;
+  cursor: help;
+}
+
+.slider-value {
+  width: 40px;
+  text-align: right;
+}
+
+input[type="range"] {
+  flex: 1;
+  margin: 0.5rem 0;
+}
+
+/* Buttons */
 button {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   padding: 0.75rem 1.5rem;
   background: #2980b9;
   color: #fff;
@@ -82,15 +105,16 @@ button {
   cursor: pointer;
   border-radius: 4px;
   align-self: flex-start;
+  transition: background 0.2s ease-in-out;
 }
 
 button:hover {
   background: #216997;
 }
 
-/* Results section */
-#results h2 {
-  margin-bottom: 0.5rem;
+/* Results */
+#results h3 {
+  margin-top: 1rem;
 }
 
 #results pre {
@@ -100,6 +124,14 @@ button:hover {
   white-space: pre-wrap;
   word-wrap: break-word;
   min-height: 2em;
+}
+
+/* Canvas charts */
+canvas {
+  background: #fafafa;
+  border: 1px solid #ccc;
+  margin-top: 0.5rem;
+  max-width: 100%;
 }
 
 /* Footer */
