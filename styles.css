@@ -10,7 +10,8 @@ body {
   background: #fafafa;
   color: #333;
   margin: 0 auto;
-  max-width: 1200px;
+  max-width: 1400px;
+  padding: 20px;
 }
 
 /* Header */
@@ -26,79 +27,47 @@ header p {
   font-size: 1.1rem;
 }
 
-/* Tab Navigation */
-.tab {
-  overflow: hidden;
-  border-bottom: 1px solid #ccc;
-  background-color: #f1f1f1;
+/* Main Sections */
+#input-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
 }
 
-.tab button {
-  background-color: inherit;
-  float: left;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  padding: 14px 20px;
-  transition: background-color 0.3s;
-  font-size: 17px;
+#input-section, #results-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 300px;
 }
 
-.tab button:hover {
-  background-color: #ddd;
-}
-
-.tab button.active {
-  background-color: #fff;
-  border-bottom: 2px solid #2980b9;
-}
-
-/* Tab Content */
-.tabcontent {
-  display: none;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-top: none;
-}
-
-/* Instructions */
-#instructions ul {
-  margin-left: 1.5rem;
-  list-style-type: disc;
-  margin-top: 0.5rem;
-}
-
-#instructions ol {
-  margin-left: 1.5rem;
-  list-style-type: decimal;
-  margin-top: 0.5rem;
-}
-
-#instructions p {
+#input-section h2, #results-section h2 {
   margin-bottom: 1rem;
 }
 
-/* Forms */
-#decisionForm {
+/* Form Styles */
+form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.note {
-  font-size: 0.9rem;
-  color: #555;
+.form-group {
+  display: flex;
+  flex-direction: column;
 }
 
 label {
   font-weight: bold;
+  margin-bottom: 0.3rem;
   cursor: help; /* indicate tooltip */
 }
 
 input[type="number"], select {
   padding: 0.5rem;
   font-size: 1rem;
-  margin-top: 0.2rem;
   width: 100%;
   max-width: 300px;
 }
@@ -139,12 +108,16 @@ button:hover {
   background: #216997;
 }
 
-/* Results */
-#results h3 {
-  margin-top: 1rem;
+/* Results Section */
+#results-section h2 {
+  margin-bottom: 1rem;
 }
 
-#results pre {
+#classInfo, #uptakeInfo {
+  margin-bottom: 2rem;
+}
+
+#classProbabilities, #uptakeProbability {
   background: #efefef;
   padding: 0.75rem;
   margin-top: 0.5rem;
@@ -153,31 +126,75 @@ button:hover {
   border-radius: 4px;
 }
 
-/* Canvas charts */
-canvas {
-  background: #fafafa;
+/* Additional Tabs */
+#additional-tabs {
+  margin-top: 2rem;
+}
+
+.tab {
+  overflow: hidden;
+  border-bottom: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 20px;
+  transition: background-color 0.3s;
+  font-size: 17px;
+}
+
+.tab button:hover {
+  background-color: #ddd;
+}
+
+.tab button.active {
+  background-color: #fff;
+  border-bottom: 2px solid #2980b9;
+}
+
+.tabcontent {
+  display: none;
+  padding: 20px;
   border: 1px solid #ccc;
-  margin-top: 0.5rem;
-  max-width: 100%;
+  border-top: none;
 }
 
-/* Downloads */
-#downloads ul {
-  list-style-type: disc;
-  margin-left: 1.5rem;
+/* Saved Results */
+#SavedResults ul {
+  list-style-type: none;
 }
 
-#downloads li {
+#SavedResults li {
+  background: #f9f9f9;
+  padding: 0.75rem;
   margin-bottom: 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-#downloads a {
-  color: #2980b9;
-  text-decoration: none;
+#SavedResults li button {
+  background: #e74c3c;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
 }
 
-#downloads a:hover {
-  text-decoration: underline;
+#SavedResults li button:hover {
+  background: #c0392b;
+}
+
+#clearSavedBtn {
+  background: #e67e22;
+}
+
+#clearSavedBtn:hover {
+  background: #d35400;
 }
 
 /* Footer */
@@ -189,6 +206,12 @@ footer {
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+  #input-results {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
   .slider-container {
     flex-direction: column;
