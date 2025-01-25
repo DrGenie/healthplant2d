@@ -18,18 +18,50 @@
     <!-- Additional Tabs -->
     <section id="additional-tabs">
       <div class="tab">
-        <button class="tablinks" onclick="openAdditionalTab(event, 'WTP')" id="wtpTab">WTP</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'Instructions')" id="instructionsTab">Instructions</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'WTPWithoutDemographics')">WTP Without Demographics</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'WTPWithDemographics')">WTP With Demographics</button>
         <button class="tablinks" onclick="openAdditionalTab(event, 'Comparison')">Comparison</button>
         <button class="tablinks" onclick="openAdditionalTab(event, 'SavedResults')">Saved Results</button>
       </div>
 
-      <!-- WTP Tab -->
-      <div id="WTP" class="tabcontent">
-        <h2>Willingness To Pay (WTP)</h2>
-        <div class="wtp-container">
-          <canvas id="wtpEfficacyChart" width="400" height="200"></canvas>
-          <canvas id="wtpRiskChart" width="400" height="200"></canvas>
-        </div>
+      <!-- Instructions Tab -->
+      <div id="Instructions" class="tabcontent">
+        <h2>Instructions</h2>
+        <p>Welcome to the T2DM Health Plan Decision Aid tool. This tool helps you predict the uptake of different health plans based on patient characteristics and plan attributes.</p>
+        <h3>How to Use the Tool</h3>
+        <ol>
+          <li><strong>Enter Patient Characteristics:</strong> Input the patient's age, gender, race, income group, education level, and self-reported health status.</li>
+          <li><strong>Select Experiment:</strong> Choose between three different experiments that represent various scenarios and preferences.</li>
+          <li><strong>Adjust Plan Attributes:</strong> Use the sliders to set the efficacy, risk, and cost for self and others (only applicable in Experiment 3).</li>
+          <li><strong>Predict Plan Uptake:</strong> Click the "Predict Plan Uptake" button to generate the results.</li>
+          <li><strong>View Results:</strong> Review the class membership probabilities and the predicted health plan uptake.</li>
+          <li><strong>Analyze WTP:</strong> Navigate to the WTP tabs to see the Willingness To Pay for efficacy and risk.</li>
+          <li><strong>Compare Scenarios:</strong> Use the Comparison tab to analyze different scenarios side by side.</li>
+          <li><strong>Save Results:</strong> Save your predictions for future reference and comparison.</li>
+        </ol>
+        <h3>Understanding the Results</h3>
+        <ul>
+          <li><strong>Class Membership Probabilities:</strong> Indicates the likelihood of a patient belonging to each latent class based on their characteristics.</li>
+          <li><strong>Predicted Health Plan Uptake:</strong> Shows the probability that a patient will choose the proposed health plan over opting out.</li>
+          <li><strong>Willingness To Pay (WTP):</strong> Represents the amount a patient is willing to pay for improvements in efficacy and risk reduction.</li>
+          <li><strong>Comparison:</strong> Allows you to compare WTP across different experiments and scenarios.</li>
+          <li><strong>Saved Results:</strong> Stores your predictions for later review and comparison.</li>
+        </ul>
+      </div>
+
+      <!-- WTP Without Demographics Tab -->
+      <div id="WTPWithoutDemographics" class="tabcontent">
+        <h2>Willingness To Pay (WTP) Without Demographics</h2>
+        <canvas id="wtpEfficacyChartWithoutDemo" width="400" height="200"></canvas>
+        <canvas id="wtpRiskChartWithoutDemo" width="400" height="200"></canvas>
+      </div>
+
+      <!-- WTP With Demographics Tab -->
+      <div id="WTPWithDemographics" class="tabcontent">
+        <h2>Willingness To Pay (WTP) With Demographics</h2>
+        <canvas id="wtpEfficacyChartWithDemo" width="400" height="200"></canvas>
+        <canvas id="wtpRiskChartWithDemo" width="400" height="200"></canvas>
       </div>
 
       <!-- Comparison Tab -->
@@ -111,7 +143,7 @@
           <div class="form-group">
             <label for="experiment" title="Choose Experiment 1, 2, or 3.">Experiment:</label>
             <select id="experiment" name="experiment">
-              <option value="1">Exp 1 (Self-Focused)</option>
+              <option value="1">Exp 1 (Only Self)</option>
               <option value="2">Exp 2 (Self &amp; Others, Equal Outcomes)</option>
               <option value="3">Exp 3 (Self vs. Others, Unequal Outcomes)</option>
             </select>
