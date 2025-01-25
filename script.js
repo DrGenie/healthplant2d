@@ -8,7 +8,8 @@
  * - Bar charts for class memberships and plan uptake.
  * - Additional tabs for Instructions, WTP (with & without demographics), Comparison, and Saved Results.
  * - Save and compare results across experiments and scenarios.
- * - Export functionality for charts.
+ * - Export functionality for charts using jsPDF.
+ * - Improved WTP calculations incorporating demographics.
  ******************************************************/
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -47,7 +48,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Download buttons
   const downloadWTPWithoutDemoBtn = document.getElementById('downloadWTPWithoutDemo');
-  const downloadWTPWithDemoBtn = document.getElementById('downloadWTPWithDemo');
+  const downloadWTPWithoutDemoRiskBtn = document.getElementById('downloadWTPWithoutDemoRisk');
+  const downloadWTPWithDemoEfficacyBtn = document.getElementById('downloadWTPWithDemoEfficacy');
+  const downloadWTPWithDemoRiskBtn = document.getElementById('downloadWTPWithDemoRisk');
+  const downloadWTPWithDemoOthersBtn = document.getElementById('downloadWTPWithDemoOthers');
   const downloadComparisonBtn = document.getElementById('downloadComparison');
 
   // Comparison Controls
@@ -62,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let wtpEfficacyChartWithDemo;
   let wtpRiskChartWithDemo;
   let wtpOthersChartWithDemo;
-  let comparisonChart;
+  let comparisonChartInstance;
 
   // Saved Results
   const savedResultsList = document.getElementById('savedResultsList');
@@ -131,7 +135,10 @@ document.addEventListener('DOMContentLoaded', function() {
   saveBtn.addEventListener('click', saveCurrentResult);
   clearSavedBtn.addEventListener('click', clearSavedResults);
   downloadWTPWithoutDemoBtn.addEventListener('click', () => downloadChart('wtpEfficacyChartWithoutDemo'));
-  downloadWTPWithDemoBtn.addEventListener('click', () => downloadChart('wtpEfficacyChartWithDemo'));
+  downloadWTPWithoutDemoRiskBtn.addEventListener('click', () => downloadChart('wtpRiskChartWithoutDemo'));
+  downloadWTPWithDemoEfficacyBtn.addEventListener('click', () => downloadChart('wtpEfficacyChartWithDemo'));
+  downloadWTPWithDemoRiskBtn.addEventListener('click', () => downloadChart('wtpRiskChartWithDemo'));
+  downloadWTPWithDemoOthersBtn.addEventListener('click', () => downloadChart('wtpOthersChartWithDemo'));
   downloadComparisonBtn.addEventListener('click', () => downloadChart('comparisonChart'));
 
   compareBtn.addEventListener('click', compareSelectedResults);
@@ -241,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         + (-1.3736) * rS
         + (-0.0940) * cS;
       const uOptOut_C1 = -1.7062;
-      planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
+      planProb_C1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
       // Class 2 (Cost-Sensitive)
       const uPlan_C2 = 0.0654
@@ -398,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wtpEfficacyChartWithDemo = null;
     wtpRiskChartWithDemo = null;
     wtpOthersChartWithDemo = null;
-    comparisonChart = null;
+    comparisonChartInstance = null;
   }
 
   /******************************************************
@@ -415,21 +422,16 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'WTP for Efficacy ($/%)',
         data: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
         backgroundColor: ['#8e44ad', '#e67e22'],
-        errorBars: {
-          color: '#000',
-          values: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se]
-        }
+        borderColor: '#000',
+        borderWidth: 1,
+        errorBarColor: '#000',
+        errorBarValues: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se]
       }]
     };
 
     const wtpEfficacyOptions = {
       plugins: {
         legend: { display: false },
-        errorBars: {
-          colors: {
-            default: '#000'
-          }
-        },
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -442,6 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       responsive: true,
+      maintainAspectRatio: false,
       scales: {
         y: {
           beginAtZero: true,
@@ -457,21 +460,16 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'WTP for Risk Reduction ($/%)',
         data: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
         backgroundColor: ['#e74c3c', '#3498db'],
-        errorBars: {
-          color: '#000',
-          values: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se]
-        }
+        borderColor: '#000',
+        borderWidth: 1,
+        errorBarColor: '#000',
+        errorBarValues: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se]
       }]
     };
 
     const wtpRiskOptions = {
       plugins: {
         legend: { display: false },
-        errorBars: {
-          colors: {
-            default: '#000'
-          }
-        },
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -484,6 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       responsive: true,
+      maintainAspectRatio: false,
       scales: {
         y: {
           beginAtZero: true,
@@ -499,10 +498,9 @@ document.addEventListener('DOMContentLoaded', function() {
       wtpEfficacyChartWithoutDemo.update();
     } else {
       wtpEfficacyChartWithoutDemo = new Chart(wtpEfficacyCtxWithoutDemo, {
-        type: 'barWithError',
+        type: 'bar',
         data: wtpEfficacyData,
-        options: wtpEfficacyOptions,
-        plugins: [Chart.registry.getPlugin('errorBars')]
+        options: wtpEfficacyOptions
       });
     }
 
@@ -513,10 +511,9 @@ document.addEventListener('DOMContentLoaded', function() {
       wtpRiskChartWithoutDemo.update();
     } else {
       wtpRiskChartWithoutDemo = new Chart(wtpRiskCtxWithoutDemo, {
-        type: 'barWithError',
+        type: 'bar',
         data: wtpRiskData,
-        options: wtpRiskOptions,
-        plugins: [Chart.registry.getPlugin('errorBars')]
+        options: wtpRiskOptions
       });
     }
   }
@@ -524,54 +521,143 @@ document.addEventListener('DOMContentLoaded', function() {
   /******************************************************
    * Update WTP Charts With Demographics
    * Class-specific WTP calculations in dollars with error bars.
-   * Incorporates demographic variables into WTP if applicable.
+   * Incorporates demographic variables into WTP calculations.
    ******************************************************/
   function updateWTChartWithDemographics(expChoice, age, gender, race, income, degree, goodHealth) {
-    // For demonstration purposes, this function mirrors the Without Demographics WTP.
-    // To incorporate demographics into WTP, you'd need a specific formula or model.
-    // Here, we'll assume demographics do not affect WTP directly.
-    // Implement this function based on your specific requirements.
+    const WTP_Data = getWTP(expChoice);
 
-    // Placeholder: Same as Without Demographics
-    updateWTChartWithoutDemographics(expChoice);
+    // Adjust WTP based on demographics
+    const demographicFactor = calculateDemographicFactor(age, gender, race, income, degree, goodHealth);
 
-    // Additionally, for Experiment 3, include WTP for Others
+    // WTP for Efficacy
+    const adjustedWTP_Class1_Efficacy = WTP_Data.class1.efficacy.wtp * demographicFactor;
+    const adjustedWTP_Class2_Efficacy = WTP_Data.class2.efficacy.wtp * demographicFactor;
+
+    // WTP for Risk
+    const adjustedWTP_Class1_Risk = WTP_Data.class1.risk.wtp * demographicFactor;
+    const adjustedWTP_Class2_Risk = WTP_Data.class2.risk.wtp * demographicFactor;
+
+    // WTP for Others (Only in Experiment 3)
+    let adjustedWTP_Class1_Others = 0;
+    let adjustedWTP_Class2_Others = 0;
     if (expChoice === '3') {
-      const WTP_Data = getWTP(expChoice);
+      adjustedWTP_Class1_Others = WTP_Data.class1.others.wtp * demographicFactor;
+      adjustedWTP_Class2_Others = WTP_Data.class2.others.wtp * demographicFactor;
+    }
 
-      const wtpOthersData = {
+    // Prepare data for WTP with Demographics
+    const wtpEfficacyData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Efficacy ($/%)',
+        data: [adjustedWTP_Class1_Efficacy, adjustedWTP_Class2_Efficacy],
+        backgroundColor: ['#8e44ad', '#e67e22'],
+        borderColor: '#000',
+        borderWidth: 1,
+        errorBarColor: '#000',
+        errorBarValues: [WTP_Data.class1.efficacy.se * demographicFactor, WTP_Data.class2.efficacy.se * demographicFactor]
+      }]
+    };
+
+    const wtpEfficacyOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = (WTP_Data.class1.efficacy.se * demographicFactor).toFixed(2);
+              return `WTP: $${value} ± $${error}`;
+            }
+          }
+        }
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
+
+    // WTP for Risk
+    const wtpRiskData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Risk Reduction ($/%)',
+        data: [adjustedWTP_Class1_Risk, adjustedWTP_Class2_Risk],
+        backgroundColor: ['#e74c3c', '#3498db'],
+        borderColor: '#000',
+        borderWidth: 1,
+        errorBarColor: '#000',
+        errorBarValues: [WTP_Data.class1.risk.se * demographicFactor, WTP_Data.class2.risk.se * demographicFactor]
+      }]
+    };
+
+    const wtpRiskOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = (WTP_Data.class1.risk.se * demographicFactor).toFixed(2);
+              return `WTP: $${value} ± $${error}`;
+            }
+          }
+        }
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
+
+    // WTP for Others (Only in Experiment 3)
+    let wtpOthersData = null;
+    let wtpOthersOptions = null;
+
+    if (expChoice === '3') {
+      const adjustedWTP_Class1_Others = WTP_Data.class1.others.wtp * demographicFactor;
+      const adjustedWTP_Class2_Others = WTP_Data.class2.others.wtp * demographicFactor;
+
+      wtpOthersData = {
         labels: ["Class 1", "Class 2"],
         datasets: [{
           label: 'WTP for Others ($/%)',
-          data: [WTP_Data.class1.others.wtp, WTP_Data.class2.others.wtp],
+          data: [adjustedWTP_Class1_Others, adjustedWTP_Class2_Others],
           backgroundColor: ['#16a085', '#d35400'],
-          errorBars: {
-            color: '#000',
-            values: [WTP_Data.class1.others.se, WTP_Data.class2.others.se]
-          }
+          borderColor: '#000',
+          borderWidth: 1,
+          errorBarColor: '#000',
+          errorBarValues: [WTP_Data.class1.others.se * demographicFactor, WTP_Data.class2.others.se * demographicFactor]
         }]
       };
 
-      const wtpOthersOptions = {
+      wtpOthersOptions = {
         plugins: {
           legend: { display: false },
-          errorBars: {
-            colors: {
-              default: '#000'
-            }
-          },
           tooltip: {
             callbacks: {
               label: function(context) {
                 const index = context.dataIndex;
                 const value = context.parsed.y.toFixed(2);
-                const error = WTP_Data.class1.others.se.toFixed(2);
+                const error = (WTP_Data.class1.others.se * demographicFactor).toFixed(2);
                 return `WTP: $${value} ± $${error}`;
               }
             }
           }
         },
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
           y: {
             beginAtZero: true,
@@ -579,18 +665,45 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       };
+    }
 
-      // Draw or Update WTP Others Chart With Demographics
+    // Draw or Update WTP Efficacy Chart With Demographics
+    if (wtpEfficacyChartWithDemo) {
+      wtpEfficacyChartWithDemo.data = wtpEfficacyData;
+      wtpEfficacyChartWithDemo.options = wtpEfficacyOptions;
+      wtpEfficacyChartWithDemo.update();
+    } else {
+      wtpEfficacyChartWithDemo = new Chart(wtpEfficacyCtxWithDemo, {
+        type: 'bar',
+        data: wtpEfficacyData,
+        options: wtpEfficacyOptions
+      });
+    }
+
+    // Draw or Update WTP Risk Chart With Demographics
+    if (wtpRiskChartWithDemo) {
+      wtpRiskChartWithDemo.data = wtpRiskData;
+      wtpRiskChartWithDemo.options = wtpRiskOptions;
+      wtpRiskChartWithDemo.update();
+    } else {
+      wtpRiskChartWithDemo = new Chart(wtpRiskCtxWithDemo, {
+        type: 'bar',
+        data: wtpRiskData,
+        options: wtpRiskOptions
+      });
+    }
+
+    // Draw or Update WTP Others Chart With Demographics (Only in Exp3)
+    if (expChoice === '3') {
       if (wtpOthersChartWithDemo) {
         wtpOthersChartWithDemo.data = wtpOthersData;
         wtpOthersChartWithDemo.options = wtpOthersOptions;
         wtpOthersChartWithDemo.update();
       } else {
         wtpOthersChartWithDemo = new Chart(wtpOthersCtxWithDemo, {
-          type: 'barWithError',
+          type: 'bar',
           data: wtpOthersData,
-          options: wtpOthersOptions,
-          plugins: [Chart.registry.getPlugin('errorBars')]
+          options: wtpOthersOptions
         });
       }
     } else {
@@ -600,6 +713,35 @@ document.addEventListener('DOMContentLoaded', function() {
         wtpOthersChartWithDemo = null;
       }
     }
+  }
+
+  /******************************************************
+   * Calculate Demographic Factor
+   * Placeholder function to adjust WTP based on demographics.
+   * This should be replaced with a proper model as needed.
+   ******************************************************/
+  function calculateDemographicFactor(age, gender, race, income, degree, goodHealth) {
+    // Simple example: factors based on demographics
+    let factor = 1;
+
+    // Age: younger individuals may have higher WTP
+    if (age < 30) factor += 0.1;
+    else if (age > 60) factor -= 0.1;
+
+    // Gender: assume no effect for simplicity
+    // Race: assume no effect for simplicity
+    // Income: high income increases WTP
+    if (income === 'high') factor += 0.2;
+    else factor -= 0.2;
+
+    // Degree: higher education increases WTP
+    if (degree === 'yes') factor += 0.1;
+
+    // Good Health: better health might reduce WTP for risk reduction
+    if (goodHealth === 'yes') factor -= 0.1;
+    else factor += 0.1;
+
+    return factor;
   }
 
   /******************************************************
@@ -729,9 +871,20 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'WTP for Efficacy ($/%)',
         data: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
         backgroundColor: ['#8e44ad', '#e67e22'],
-        errorBarColor: '#000',
-        errorBarThickness: 1,
-        errorBarValues: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se]
+        borderColor: '#000',
+        borderWidth: 1,
+        // Error bars
+        errorBarData: {
+          datasets: [{
+            x: [0,1],
+            y: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
+            error: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se],
+            borderColor: '#000',
+            borderWidth: 1,
+            capWidth: 5,
+            lineWidth: 1
+          }]
+        }
       }]
     };
 
@@ -741,19 +894,7 @@ document.addEventListener('DOMContentLoaded', function() {
         errorBars: {
           display: true,
           color: '#000',
-          thickness: 2,
-          // Chart.js Error Bars Plugin expects `errorBarData` as an array of objects
-          errorBarData: {
-            datasets: [{
-              x: [0,1],
-              y: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
-              error: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se],
-              borderColor: '#000',
-              borderWidth: 1,
-              capWidth: 5,
-              lineWidth: 1
-            }]
-          }
+          thickness: 2
         },
         tooltip: {
           callbacks: {
@@ -783,9 +924,20 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'WTP for Risk Reduction ($/%)',
         data: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
         backgroundColor: ['#e74c3c', '#3498db'],
-        errorBarColor: '#000',
-        errorBarThickness: 1,
-        errorBarValues: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se]
+        borderColor: '#000',
+        borderWidth: 1,
+        // Error bars
+        errorBarData: {
+          datasets: [{
+            x: [0,1],
+            y: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
+            error: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se],
+            borderColor: '#000',
+            borderWidth: 1,
+            capWidth: 5,
+            lineWidth: 1
+          }]
+        }
       }]
     };
 
@@ -795,18 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         errorBars: {
           display: true,
           color: '#000',
-          thickness: 2,
-          errorBarData: {
-            datasets: [{
-              x: [0,1],
-              y: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
-              error: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se],
-              borderColor: '#000',
-              borderWidth: 1,
-              capWidth: 5,
-              lineWidth: 1
-            }]
-          }
+          thickness: 2
         },
         tooltip: {
           callbacks: {
@@ -859,18 +1000,51 @@ document.addEventListener('DOMContentLoaded', function() {
   /******************************************************
    * Update WTP Charts With Demographics
    * Class-specific WTP calculations in dollars with error bars.
-   * Incorporates demographic variables into WTP if applicable.
+   * Incorporates demographic variables into WTP calculations.
    ******************************************************/
   function updateWTChartWithDemographics(expChoice, age, gender, race, income, degree, goodHealth) {
     const WTP_Data = getWTP(expChoice);
 
+    // Adjust WTP based on demographics
+    const demographicFactor = calculateDemographicFactor(age, gender, race, income, degree, goodHealth);
+
     // WTP for Efficacy
+    const adjustedWTP_Class1_Efficacy = WTP_Data.class1.efficacy.wtp * demographicFactor;
+    const adjustedWTP_Class2_Efficacy = WTP_Data.class2.efficacy.wtp * demographicFactor;
+
+    // WTP for Risk
+    const adjustedWTP_Class1_Risk = WTP_Data.class1.risk.wtp * demographicFactor;
+    const adjustedWTP_Class2_Risk = WTP_Data.class2.risk.wtp * demographicFactor;
+
+    // WTP for Others (Only in Experiment 3)
+    let adjustedWTP_Class1_Others = 0;
+    let adjustedWTP_Class2_Others = 0;
+    if (expChoice === '3') {
+      adjustedWTP_Class1_Others = WTP_Data.class1.others.wtp * demographicFactor;
+      adjustedWTP_Class2_Others = WTP_Data.class2.others.wtp * demographicFactor;
+    }
+
+    // Prepare data for WTP with Demographics
     const wtpEfficacyData = {
       labels: ["Class 1", "Class 2"],
       datasets: [{
         label: 'WTP for Efficacy ($/%)',
-        data: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
-        backgroundColor: ['#8e44ad', '#e67e22']
+        data: [adjustedWTP_Class1_Efficacy, adjustedWTP_Class2_Efficacy],
+        backgroundColor: ['#8e44ad', '#e67e22'],
+        borderColor: '#000',
+        borderWidth: 1,
+        // Error bars
+        errorBarData: {
+          datasets: [{
+            x: [0,1],
+            y: [adjustedWTP_Class1_Efficacy, adjustedWTP_Class2_Efficacy],
+            error: [WTP_Data.class1.efficacy.se * demographicFactor, WTP_Data.class2.efficacy.se * demographicFactor],
+            borderColor: '#000',
+            borderWidth: 1,
+            capWidth: 5,
+            lineWidth: 1
+          }]
+        }
       }]
     };
 
@@ -880,25 +1054,14 @@ document.addEventListener('DOMContentLoaded', function() {
         errorBars: {
           display: true,
           color: '#000',
-          thickness: 2,
-          errorBarData: {
-            datasets: [{
-              x: [0,1],
-              y: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
-              error: [WTP_Data.class1.efficacy.se, WTP_Data.class2.efficacy.se],
-              borderColor: '#000',
-              borderWidth: 1,
-              capWidth: 5,
-              lineWidth: 1
-            }]
-          }
+          thickness: 2
         },
         tooltip: {
           callbacks: {
             label: function(context) {
               const index = context.dataIndex;
               const value = context.parsed.y.toFixed(2);
-              const error = WTP_Data.class1.efficacy.se.toFixed(2);
+              const error = (WTP_Data.class1.efficacy.se * demographicFactor).toFixed(2);
               return `WTP: $${value} ± $${error}`;
             }
           }
@@ -919,8 +1082,22 @@ document.addEventListener('DOMContentLoaded', function() {
       labels: ["Class 1", "Class 2"],
       datasets: [{
         label: 'WTP for Risk Reduction ($/%)',
-        data: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
-        backgroundColor: ['#e74c3c', '#3498db']
+        data: [adjustedWTP_Class1_Risk, adjustedWTP_Class2_Risk],
+        backgroundColor: ['#e74c3c', '#3498db'],
+        borderColor: '#000',
+        borderWidth: 1,
+        // Error bars
+        errorBarData: {
+          datasets: [{
+            x: [0,1],
+            y: [adjustedWTP_Class1_Risk, adjustedWTP_Class2_Risk],
+            error: [WTP_Data.class1.risk.se * demographicFactor, WTP_Data.class2.risk.se * demographicFactor],
+            borderColor: '#000',
+            borderWidth: 1,
+            capWidth: 5,
+            lineWidth: 1
+          }]
+        }
       }]
     };
 
@@ -930,25 +1107,14 @@ document.addEventListener('DOMContentLoaded', function() {
         errorBars: {
           display: true,
           color: '#000',
-          thickness: 2,
-          errorBarData: {
-            datasets: [{
-              x: [0,1],
-              y: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
-              error: [WTP_Data.class1.risk.se, WTP_Data.class2.risk.se],
-              borderColor: '#000',
-              borderWidth: 1,
-              capWidth: 5,
-              lineWidth: 1
-            }]
-          }
+          thickness: 2
         },
         tooltip: {
           callbacks: {
             label: function(context) {
               const index = context.dataIndex;
               const value = context.parsed.y.toFixed(2);
-              const error = WTP_Data.class1.risk.se.toFixed(2);
+              const error = (WTP_Data.class1.risk.se * demographicFactor).toFixed(2);
               return `WTP: $${value} ± $${error}`;
             }
           }
@@ -969,12 +1135,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let wtpOthersOptions = null;
 
     if (expChoice === '3') {
+      const adjustedWTP_Class1_Others = WTP_Data.class1.others.wtp * demographicFactor;
+      const adjustedWTP_Class2_Others = WTP_Data.class2.others.wtp * demographicFactor;
+
       wtpOthersData = {
         labels: ["Class 1", "Class 2"],
         datasets: [{
           label: 'WTP for Others ($/%)',
-          data: [WTP_Data.class1.others.wtp, WTP_Data.class2.others.wtp],
-          backgroundColor: ['#16a085', '#d35400']
+          data: [adjustedWTP_Class1_Others, adjustedWTP_Class2_Others],
+          backgroundColor: ['#16a085', '#d35400'],
+          borderColor: '#000',
+          borderWidth: 1,
+          // Error bars
+          errorBarData: {
+            datasets: [{
+              x: [0,1],
+              y: [adjustedWTP_Class1_Others, adjustedWTP_Class2_Others],
+              error: [WTP_Data.class1.others.se * demographicFactor, WTP_Data.class2.others.se * demographicFactor],
+              borderColor: '#000',
+              borderWidth: 1,
+              capWidth: 5,
+              lineWidth: 1
+            }]
+          }
         }]
       };
 
@@ -984,25 +1167,14 @@ document.addEventListener('DOMContentLoaded', function() {
           errorBars: {
             display: true,
             color: '#000',
-            thickness: 2,
-            errorBarData: {
-              datasets: [{
-                x: [0,1],
-                y: [WTP_Data.class1.others.wtp, WTP_Data.class2.others.wtp],
-                error: [WTP_Data.class1.others.se, WTP_Data.class2.others.se],
-                borderColor: '#000',
-                borderWidth: 1,
-                capWidth: 5,
-                lineWidth: 1
-              }]
-            }
+            thickness: 2
           },
           tooltip: {
             callbacks: {
               label: function(context) {
                 const index = context.dataIndex;
                 const value = context.parsed.y.toFixed(2);
-                const error = WTP_Data.class1.others.se.toFixed(2);
+                const error = (WTP_Data.class1.others.se * demographicFactor).toFixed(2);
                 return `WTP: $${value} ± $${error}`;
               }
             }
@@ -1065,6 +1237,155 @@ document.addEventListener('DOMContentLoaded', function() {
         wtpOthersChartWithDemo = null;
       }
     }
+  }
+
+  /******************************************************
+   * Calculate Demographic Factor
+   * More sophisticated model can be implemented here.
+   ******************************************************/
+  function calculateDemographicFactor(age, gender, race, income, degree, goodHealth) {
+    // Placeholder for a more sophisticated model
+    // For demonstration, apply different weights based on demographics
+
+    let factor = 1;
+
+    // Age: younger individuals may have higher WTP
+    if (age < 30) factor += 0.15;
+    else if (age > 60) factor -= 0.1;
+
+    // Gender: Assume females have slightly higher WTP
+    if (gender === 'female') factor += 0.05;
+
+    // Race: Assume no effect for simplicity
+
+    // Income: high income increases WTP significantly
+    if (income === 'high') factor += 0.25;
+    else factor -= 0.15;
+
+    // Degree: higher education increases WTP
+    if (degree === 'yes') factor += 0.1;
+
+    // Good Health: better health might reduce WTP for risk reduction
+    if (goodHealth === 'yes') factor -= 0.1;
+    else factor += 0.1;
+
+    // Ensure factor stays within reasonable bounds
+    factor = Math.max(0.5, Math.min(factor, 1.5));
+
+    return factor;
+  }
+
+  /******************************************************
+   * Get WTP Data
+   * Returns WTP and standard errors for each class and attribute.
+   ******************************************************/
+  function getWTP(expChoice) {
+    // Define coefficients and standard errors for each experiment and class
+    const data = {
+      '1': { // Experiment 1
+        class1: {
+          efficacy: { coef: 1.6944, se: 0.0875 },
+          risk: { coef: -1.8439, se: 0.2443 },
+          cost: { coef: -0.0650, se: 0.0075 }
+        },
+        class2: {
+          efficacy: { coef: 2.7260, se: 0.2197 },
+          risk: { coef: -2.0641, se: 0.7201 },
+          cost: { coef: -0.3963, se: 0.0371 }
+        }
+      },
+      '2': { // Experiment 2
+        class1: {
+          efficacy: { coef: 1.9771, se: 0.0858 },
+          risk: { coef: -1.3736, se: 0.2288 },
+          cost: { coef: -0.0940, se: 0.0076 }
+        },
+        class2: {
+          efficacy: { coef: 2.5939, se: 0.2377 },
+          risk: { coef: 0.0550, se: 0.7263 },
+          cost: { coef: -0.3627, se: 0.0325 }
+        }
+      },
+      '3': { // Experiment 3
+        class1: {
+          efficacy: { coef: 1.3070, se: 0.0845 },
+          risk: { coef: -0.6877, se: 0.3073 },
+          cost: { coef: -0.0393, se: 0.0070 },
+          others: { coef: 0.5063, se: 0.0838 }
+        },
+        class2: {
+          efficacy: { coef: 2.5028, se: 0.3107 },
+          risk: { coef: -2.3606, se: 0.8912 },
+          cost: { coef: -0.3527, se: 0.0435 },
+          others: { coef: 0.5076, se: 0.3285 }
+        }
+      }
+    };
+
+    const expData = data[expChoice];
+
+    // Calculate WTP for efficacy and risk for each class
+    const WTP_Class1_Efficacy = expData.class1.efficacy.coef / (-expData.class1.cost.coef);
+    const WTP_Class1_Risk = expData.class1.risk.coef / (-expData.class1.cost.coef);
+    const WTP_Class2_Efficacy = expData.class2.efficacy.coef / (-expData.class2.cost.coef);
+    const WTP_Class2_Risk = expData.class2.risk.coef / (-expData.class2.cost.coef);
+
+    // Calculate WTP for others in Experiment 3
+    let WTP_Class1_Others = 0;
+    let WTP_Class2_Others = 0;
+    if (expChoice === '3') {
+      WTP_Class1_Others = expData.class1.others.coef / (-expData.class1.cost.coef);
+      WTP_Class2_Others = expData.class2.others.coef / (-expData.class2.cost.coef);
+    }
+
+    // Calculate standard errors using the delta method
+    const WTP_Class1_Efficacy_SE = Math.sqrt(
+      Math.pow(expData.class1.efficacy.se / (-expData.class1.cost.coef), 2) +
+      Math.pow((expData.class1.efficacy.coef * expData.class1.cost.se) / (Math.pow(expData.class1.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class1_Risk_SE = Math.sqrt(
+      Math.pow(expData.class1.risk.se / (-expData.class1.cost.coef), 2) +
+      Math.pow((expData.class1.risk.coef * expData.class1.cost.se) / (Math.pow(expData.class1.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class2_Efficacy_SE = Math.sqrt(
+      Math.pow(expData.class2.efficacy.se / (-expData.class2.cost.coef), 2) +
+      Math.pow((expData.class2.efficacy.coef * expData.class2.cost.se) / (Math.pow(expData.class2.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class2_Risk_SE = Math.sqrt(
+      Math.pow(expData.class2.risk.se / (-expData.class2.cost.coef), 2) +
+      Math.pow((expData.class2.risk.coef * expData.class2.cost.se) / (Math.pow(expData.class2.cost.coef, 2)), 2)
+    );
+
+    // For Experiment 3, calculate WTP for others
+    let WTP_Class1_Others_SE = 0;
+    let WTP_Class2_Others_SE = 0;
+    if (expChoice === '3') {
+      WTP_Class1_Others_SE = Math.sqrt(
+        Math.pow(expData.class1.others.se / (-expData.class1.cost.coef), 2) +
+        Math.pow((expData.class1.others.coef * expData.class1.cost.se) / (Math.pow(expData.class1.cost.coef, 2)), 2)
+      );
+
+      WTP_Class2_Others_SE = Math.sqrt(
+        Math.pow(expData.class2.others.se / (-expData.class2.cost.coef), 2) +
+        Math.pow((expData.class2.others.coef * expData.class2.cost.se) / (Math.pow(expData.class2.cost.coef, 2)), 2)
+      );
+    }
+
+    return {
+      class1: {
+        efficacy: { wtp: WTP_Class1_Efficacy, se: WTP_Class1_Efficacy_SE },
+        risk: { wtp: WTP_Class1_Risk, se: WTP_Class1_Risk_SE },
+        others: { wtp: WTP_Class1_Others, se: WTP_Class1_Others_SE }
+      },
+      class2: {
+        efficacy: { wtp: WTP_Class2_Efficacy, se: WTP_Class2_Efficacy_SE },
+        risk: { wtp: WTP_Class2_Risk, se: WTP_Class2_Risk_SE },
+        others: { wtp: WTP_Class2_Others, se: WTP_Class2_Others_SE }
+      }
+    };
   }
 
   /******************************************************
@@ -1203,8 +1524,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add data to comparison chart
-    if (!comparisonChart) {
-      comparisonChart = new Chart(comparisonCtx, {
+    if (!comparisonChartInstance) {
+      comparisonChartInstance = new Chart(comparisonCtx, {
         type: 'bar',
         data: {
           labels: [class1Label, class2Label, 'Predicted Uptake'],
@@ -1235,13 +1556,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const color = getRandomColor();
-    comparisonChart.data.datasets.push({
+    comparisonChartInstance.data.datasets.push({
       label: result.timestamp,
       data: [class1Prob, class2Prob, uptake],
       backgroundColor: color
     });
 
-    comparisonChart.update();
+    comparisonChartInstance.update();
   }
 
   /******************************************************
@@ -1274,13 +1595,13 @@ document.addEventListener('DOMContentLoaded', function() {
    * Remove Deleted Result from Comparison Chart
    ******************************************************/
   function removeFromComparisonChart(timestamp) {
-    if (!comparisonChart) return;
+    if (!comparisonChartInstance) return;
 
     // Find the dataset index by label (timestamp)
-    const datasetIndex = comparisonChart.data.datasets.findIndex(ds => ds.label === timestamp);
+    const datasetIndex = comparisonChartInstance.data.datasets.findIndex(ds => ds.label === timestamp);
     if (datasetIndex !== -1) {
-      comparisonChart.data.datasets.splice(datasetIndex, 1);
-      comparisonChart.update();
+      comparisonChartInstance.data.datasets.splice(datasetIndex, 1);
+      comparisonChartInstance.update();
     }
   }
 
@@ -1292,9 +1613,9 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.removeItem('savedResults');
       savedResultsList.innerHTML = '';
       comparisonSelect.innerHTML = '';
-      if (comparisonChart) {
-        comparisonChart.data.datasets = [];
-        comparisonChart.update();
+      if (comparisonChartInstance) {
+        comparisonChartInstance.data.datasets = [];
+        comparisonChartInstance.update();
       }
       alert("All saved results have been cleared.");
     }
@@ -1349,8 +1670,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    if (!comparisonChart) {
-      comparisonChart = new Chart(comparisonCtx, {
+    if (!comparisonChartInstance) {
+      comparisonChartInstance = new Chart(comparisonCtx, {
         type: 'bar',
         data: {
           labels: ['Class 1', 'Class 2', 'Predicted Uptake'],
@@ -1380,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } else {
       // Reset comparison chart datasets
-      comparisonChart.data.datasets = [];
+      comparisonChartInstance.data.datasets = [];
     }
 
     selectedOptions.forEach(option => {
@@ -1407,7 +1728,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add data to comparison chart
         const color = getRandomColor();
-        comparisonChart.data.datasets.push({
+        comparisonChartInstance.data.datasets.push({
           label: result.timestamp,
           data: [class1Prob, class2Prob, uptake],
           backgroundColor: color
@@ -1415,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
-    comparisonChart.update();
+    comparisonChartInstance.update();
   }
 
   /******************************************************
@@ -1428,10 +1749,19 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    const link = document.createElement('a');
-    link.href = chart.toBase64Image();
-    link.download = `${chartId}.png`;
-    link.click();
+    // Create a temporary canvas to hold the chart image
+    const canvas = document.getElementById(chartId);
+    const imgData = canvas.toDataURL('image/png');
+
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Add the image to PDF
+    doc.addImage(imgData, 'PNG', 10, 10, 180, 100);
+
+    // Save the PDF
+    doc.save(`${chartId}.pdf`);
   }
 
 });
