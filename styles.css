@@ -10,20 +10,55 @@ body {
   background: #fafafa;
   color: #333;
   margin: 0 auto;
-  max-width: 980px;
+  max-width: 1200px;
 }
 
 /* Header */
 header {
   background: #2c3e50;
   color: #fff;
-  padding: 1rem;
+  padding: 1.5rem;
   text-align: center;
 }
 
-/* Main Container */
-main {
-  padding: 1rem;
+header p {
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* Tab Navigation */
+.tab {
+  overflow: hidden;
+  border-bottom: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 20px;
+  transition: background-color 0.3s;
+  font-size: 17px;
+}
+
+.tab button:hover {
+  background-color: #ddd;
+}
+
+.tab button.active {
+  background-color: #fff;
+  border-bottom: 2px solid #2980b9;
+}
+
+/* Tab Content */
+.tabcontent {
+  display: none;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-top: none;
 }
 
 /* Instructions */
@@ -33,23 +68,21 @@ main {
   margin-top: 0.5rem;
 }
 
-/* Section styling */
-section {
-  background: #fff;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border-radius: 4px;
+#instructions ol {
+  margin-left: 1.5rem;
+  list-style-type: decimal;
+  margin-top: 0.5rem;
 }
 
-section h2 {
-  margin-bottom: 0.5rem;
+#instructions p {
+  margin-bottom: 1rem;
 }
 
 /* Forms */
 #decisionForm {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .note {
@@ -57,21 +90,19 @@ section h2 {
   color: #555;
 }
 
-/* Labels and inputs */
 label {
   font-weight: bold;
-  margin-top: 0.5rem;
   cursor: help; /* indicate tooltip */
 }
 
-select, input[type="number"] {
-  padding: 0.4rem;
-  font-size: 0.9rem;
+input[type="number"], select {
+  padding: 0.5rem;
+  font-size: 1rem;
   margin-top: 0.2rem;
-  width: 200px;
+  width: 100%;
+  max-width: 300px;
 }
 
-/* Sliders */
 .slider-container {
   display: flex;
   align-items: center;
@@ -79,24 +110,20 @@ select, input[type="number"] {
 }
 
 .slider-container label {
-  margin-top: 0;
-  width: 180px;
-  cursor: help;
+  width: 200px;
+  font-weight: bold;
 }
 
 .slider-value {
-  width: 40px;
-  text-align: right;
+  width: 50px;
+  text-align: center;
 }
 
 input[type="range"] {
   flex: 1;
-  margin: 0.5rem 0;
 }
 
-/* Buttons */
 button {
-  margin-top: 1rem;
   padding: 0.75rem 1.5rem;
   background: #2980b9;
   color: #fff;
@@ -119,11 +146,11 @@ button:hover {
 
 #results pre {
   background: #efefef;
-  padding: 0.5rem;
+  padding: 0.75rem;
   margin-top: 0.5rem;
   white-space: pre-wrap;
   word-wrap: break-word;
-  min-height: 2em;
+  border-radius: 4px;
 }
 
 /* Canvas charts */
@@ -134,10 +161,45 @@ canvas {
   max-width: 100%;
 }
 
+/* Downloads */
+#downloads ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+#downloads li {
+  margin-bottom: 0.5rem;
+}
+
+#downloads a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+#downloads a:hover {
+  text-decoration: underline;
+}
+
 /* Footer */
 footer {
   text-align: center;
   margin: 2rem 0;
   font-size: 0.9rem;
   color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .slider-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .slider-container label {
+    width: 100%;
+  }
+
+  input[type="number"], select {
+    max-width: 100%;
+  }
 }
