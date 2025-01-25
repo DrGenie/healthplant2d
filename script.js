@@ -7,11 +7,11 @@
  * - Disables "others" inputs for Exp1 & Exp2.
  * - Interactive sliders for risk/cost.
  * - Bar charts to visualize membership & plan uptake.
- * - Downloadable PDFs.
+ * - Functional tab interface.
  ******************************************************/
 
-// Wait until Chart.js is loaded
-window.addEventListener('load', function() {
+// Ensure the DOM is fully loaded before running scripts
+document.addEventListener('DOMContentLoaded', function() {
   // Grab elements
   const experimentEl = document.getElementById('experiment');
   const efficacySelfEl = document.getElementById('efficacySelf');
@@ -118,7 +118,7 @@ window.addEventListener('load', function() {
     const cOthers = parseFloat(costOthersEl.value);
 
     // Basic validation
-    if (age < 18 || age > 120) {
+    if (isNaN(age) || age < 18 || age > 120) {
       alert("Please ensure Age is between 18 and 120.");
       return;
     }
@@ -278,7 +278,7 @@ window.addEventListener('load', function() {
         + (-1.3736)*rS
         + (-0.0940)*cS;
       const uOptOut_C1 = -1.7062;
-      planProb_C1 = logisticChoice(uPlan_C1, uOptOut_C1);
+      planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
       // Class 2 (Cost-Sensitive)
       // asc=0.0654, optout=1.6773
@@ -329,7 +329,7 @@ window.addEventListener('load', function() {
 
     // Debug logs (optional)
     // console.log(`uPlan_C1= ${uPlan_C1}, uOptOut_C1= ${uOptOut_C1}, planProbC1= ${planProbC1}`);
-    // console.log(`uPlan_C2= ${uPlan_C2}, uOptOut_C2= ${uOptOut_C2}, planProbC2= ${planProbC2}`);
+    // console.log(`uPlan_C2= ${uPlan_C2}, uOptOut_C2= ${uOptOut_C2}, planProbC2= ${planProb_C2}`);
     // console.log(`overallPlanProb= ${overallPlanProb}`);
 
     return overallPlanProb;
@@ -434,7 +434,7 @@ window.addEventListener('load', function() {
   /******************************************************
    * Tab functionality
    ******************************************************/
-  function openTab(evt, tabName) {
+  window.openTab = function(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
@@ -458,10 +458,4 @@ window.addEventListener('load', function() {
   // Get the element with id="defaultOpen" and click on it to open the default tab
   document.getElementById("defaultOpen").click();
 
-  /******************************************************
-   * Optional: Initialize Charts on Page Load
-   ******************************************************/
-  // Initialize empty charts
-  membershipChart = new Chart(membershipCtx, {});
-  uptakeChart = new Chart(uptakeCtx, {});
 });
