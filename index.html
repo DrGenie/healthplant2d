@@ -15,6 +15,39 @@
   </header>
   
   <main>
+    <!-- Additional Tabs -->
+    <section id="additional-tabs">
+      <div class="tab">
+        <button class="tablinks" onclick="openAdditionalTab(event, 'WTP')" id="wtpTab">WTP</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'Comparison')">Comparison</button>
+        <button class="tablinks" onclick="openAdditionalTab(event, 'SavedResults')">Saved Results</button>
+      </div>
+
+      <!-- WTP Tab -->
+      <div id="WTP" class="tabcontent">
+        <h2>Willingness To Pay (WTP)</h2>
+        <div class="wtp-container">
+          <canvas id="wtpEfficacyChart" width="400" height="200"></canvas>
+          <canvas id="wtpRiskChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Comparison Tab -->
+      <div id="Comparison" class="tabcontent">
+        <h2>Comparison of Scenarios</h2>
+        <canvas id="comparisonChart" width="600" height="400"></canvas>
+      </div>
+
+      <!-- Saved Results Tab -->
+      <div id="SavedResults" class="tabcontent">
+        <h2>Saved Results</h2>
+        <div id="savedResultsContainer">
+          <ul id="savedResultsList"></ul>
+        </div>
+        <button type="button" id="clearSavedBtn">Clear All Saved Results</button>
+      </div>
+    </section>
+
     <!-- Input and Results Section -->
     <section id="input-results">
       <div id="input-section">
@@ -159,8 +192,10 @@
             <span id="costOthersValue" class="slider-value">100</span>
           </div>
 
-          <button type="button" id="predictBtn">Predict Plan Uptake</button>
-          <button type="button" id="saveBtn">Save Result</button>
+          <div class="button-group">
+            <button type="button" id="predictBtn">Predict Plan Uptake</button>
+            <button type="button" id="saveBtn">Save Result</button>
+          </div>
         </form>
       </div>
 
@@ -173,40 +208,10 @@
         </div>
         
         <div id="uptakeInfo">
-          <h3>Plan Uptake vs. Opt-Out</h3>
+          <h3>Predicted Health Plan Uptake</h3>
           <canvas id="uptakeChart" width="400" height="200"></canvas>
           <pre id="uptakeProbability"></pre>
         </div>
-      </div>
-    </section>
-
-    <!-- Additional Tabs -->
-    <section id="additional-tabs">
-      <div class="tab">
-        <button class="tablinks" onclick="openAdditionalTab(event, 'WTP')" id="wtpTab">WTP</button>
-        <button class="tablinks" onclick="openAdditionalTab(event, 'Comparison')">Comparison</button>
-        <button class="tablinks" onclick="openAdditionalTab(event, 'SavedResults')">Saved Results</button>
-      </div>
-
-      <!-- WTP Tab -->
-      <div id="WTP" class="tabcontent">
-        <h2>Willingness To Pay (WTP)</h2>
-        <canvas id="wtpChart" width="400" height="200"></canvas>
-      </div>
-
-      <!-- Comparison Tab -->
-      <div id="Comparison" class="tabcontent">
-        <h2>Comparison of Scenarios</h2>
-        <canvas id="comparisonChart" width="600" height="400"></canvas>
-      </div>
-
-      <!-- Saved Results Tab -->
-      <div id="SavedResults" class="tabcontent">
-        <h2>Saved Results</h2>
-        <div id="savedResultsContainer">
-          <ul id="savedResultsList"></ul>
-        </div>
-        <button type="button" id="clearSavedBtn">Clear Saved Results</button>
       </div>
     </section>
   </main>
