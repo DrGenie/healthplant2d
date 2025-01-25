@@ -37,13 +37,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // Chart contexts
   const membershipCtx = document.getElementById('membershipChart').getContext('2d');
   const uptakeCtx = document.getElementById('uptakeChart').getContext('2d');
-  const wtpCtx = document.getElementById('wtpChart').getContext('2d');
+  const wtpEfficacyCtx = document.getElementById('wtpEfficacyChart').getContext('2d');
+  const wtpRiskCtx = document.getElementById('wtpRiskChart').getContext('2d');
   const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
 
   // Charts
   let membershipChart;
   let uptakeChart;
-  let wtpChart;
+  let wtpEfficacyChart;
+  let wtpRiskChart;
   let comparisonChart;
 
   // Saved Results
@@ -151,11 +153,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3) Display
     displayResults(label1, label2, pC1, pC2, planProb);
 
-    // 4) Update WTP Chart
-    updateWTChart(planProb);
+    // 4) Update WTP Charts
+    updateWTChart(effSelf, rSelf);
 
-    // 5) Update Comparison Chart if already populated
-    // (Optional: Implementation can vary based on requirements)
+    // 5) Update Comparison Chart if needed
+    // (This can be enhanced based on user interaction)
   }
 
   /******************************************************
@@ -368,10 +370,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display plan uptake probability
     uptakeProbabilityEl.textContent = 
-      `Probability of Plan Uptake (vs. Opt-Out): ${(planProb*100).toFixed(2)}%`;
+      `Predicted Health Plan Uptake: ${(planProb*100).toFixed(2)}%`;
 
     // Draw or Update membership bar chart
     if (membershipChart) {
+      membershipChart.data.labels = [label1, label2];
       membershipChart.data.datasets[0].data = [(pC1*100), (pC2*100)];
       membershipChart.update();
     } else {
@@ -417,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
       uptakeChart = new Chart(uptakeCtx, {
         type: 'bar',
         data: {
-          labels: ['Plan Uptake Probability'],
+          labels: ['Predicted Health Plan Uptake'],
           datasets: [{
             label: 'Probability (%)',
             data: [(planProb*100)],
@@ -456,35 +459,55 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize empty charts
     membershipChart = null;
     uptakeChart = null;
-    wtpChart = null;
+    wtpEfficacyChart = null;
+    wtpRiskChart = null;
     comparisonChart = null;
   }
 
   /******************************************************
-   * Update WTP Chart
+   * Update WTP Charts
+   * Calculate WTP for efficacy and risk based on the
+   * coefficients and user inputs.
    ******************************************************/
-  function updateWTChart(planProb) {
-    if (wtpChart) {
-      wtpChart.data.datasets[0].data = [planProb * 100];
-      wtpChart.update();
+  function updateWTChart(effSelf, riskSelf) {
+    // WTP for efficacy and risk can be derived as:
+    // WTP = (Utility coefficient) / (1 - probability)
+    // However, exact calculation depends on the model specification.
+    // Here, we'll assume WTP is proportional to the utility coefficients.
+
+    // For demonstration, let's define WTP as the utility coefficients:
+    // Higher efficacy increases WTP, higher risk decreases WTP
+    // Adjust based on your specific model if different.
+
+    // Assuming coefficients:
+    // Efficacy: positive impact on WTP
+    // Risk: negative impact on WTP
+
+    // For simplicity, let's normalize the values to a scale of 0-100
+    const wtpEfficacy = effSelf; // Directly using efficacy score
+    const wtpRisk = 100 - riskSelf; // Inversely related to risk
+
+    // Draw or Update WTP Efficacy Chart
+    if (wtpEfficacyChart) {
+      wtpEfficacyChart.data.datasets[0].data = [wtpEfficacy];
+      wtpEfficacyChart.update();
     } else {
-      wtpChart = new Chart(wtpCtx, {
+      wtpEfficacyChart = new Chart(wtpEfficacyCtx, {
         type: 'bar',
         data: {
-          labels: ['Plan Uptake Probability'],
+          labels: ['WTP for Efficacy'],
           datasets: [{
-            label: 'Probability (%)',
-            data: [planProb * 100],
+            label: 'Efficacy (Self)',
+            data: [wtpEfficacy],
             backgroundColor: ['#8e44ad']
           }]
         },
         options: {
-          indexAxis: 'y',
           scales: {
-            x: {
+            y: {
               min: 0,
               max: 100,
-              title: { display: true, text: 'Percentage' }
+              title: { display: true, text: 'WTP (%)' }
             }
           },
           responsive: true,
@@ -493,7 +516,45 @@ document.addEventListener('DOMContentLoaded', function() {
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `${context.parsed.x.toFixed(2)}%`;
+                  return `${context.parsed.y.toFixed(2)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Draw or Update WTP Risk Chart
+    if (wtpRiskChart) {
+      wtpRiskChart.data.datasets[0].data = [wtpRisk];
+      wtpRiskChart.update();
+    } else {
+      wtpRiskChart = new Chart(wtpRiskCtx, {
+        type: 'bar',
+        data: {
+          labels: ['WTP for Risk Reduction'],
+          datasets: [{
+            label: 'Risk (Self)',
+            data: [wtpRisk],
+            backgroundColor: ['#e74c3c']
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'WTP (%)' }
+            }
+          },
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.y.toFixed(2)}%`;
                 }
               }
             }
@@ -608,11 +669,11 @@ document.addEventListener('DOMContentLoaded', function() {
    ******************************************************/
   function displaySavedResult(result) {
     // Extract plan uptake probability
-    const uptakeMatch = result.uptakeProbText.match(/([\d.]+)%/);
+    const uptakeMatch = result.uptakeProbText.match(/(\d+(\.\d+)?)%/);
     const uptake = uptakeMatch ? parseFloat(uptakeMatch[1]) : 0;
 
     // Extract class probabilities
-    const classMatch = result.classProbText.match(/(Class 1: [^:]+): ([\d.]+)%\n(Class 2: [^:]+): ([\d.]+)%/);
+    const classMatch = result.classProbText.match(/(Class 1: [^:]+): (\d+(\.\d+)?)%\n(Class 2: [^:]+): (\d+(\.\d+)?)%/);
     let class1Label = "Class 1";
     let class2Label = "Class 2";
     let class1Prob = 0;
@@ -620,8 +681,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (classMatch) {
       class1Label = classMatch[1];
       class1Prob = parseFloat(classMatch[2]);
-      class2Label = classMatch[3];
-      class2Prob = parseFloat(classMatch[4]);
+      class2Label = classMatch[4];
+      class2Prob = parseFloat(classMatch[5]);
     }
 
     // Add data to comparison chart
@@ -629,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
       comparisonChart = new Chart(comparisonCtx, {
         type: 'bar',
         data: {
-          labels: [class1Label, class2Label, 'Plan Uptake'],
+          labels: [class1Label, class2Label, 'Predicted Uptake'],
           datasets: []
         },
         options: {
@@ -729,5 +790,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
   }
+
+  // Set default active tab to WTP
+  document.getElementById("wtpTab").click();
 
 });
