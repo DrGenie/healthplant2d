@@ -180,9 +180,31 @@ input[type="range"] {
   align-items: flex-start;
 }
 
-.wtp-container canvas {
-  max-width: 100%;
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.chart-wrapper canvas {
+  width: 100%;
   height: auto;
+}
+
+.download-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: #8e44ad;
+  color: #fff;
+  transition: background-color 0.3s;
+}
+
+.download-btn:hover {
+  background-color: #71368a;
 }
 
 /* Comparison Controls */
@@ -218,23 +240,6 @@ input[type="range"] {
 
 .comparison-controls button:hover {
   background-color: #1e8449;
-}
-
-/* Download Buttons */
-.download-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  background-color: #8e44ad;
-  color: #fff;
-  transition: background-color 0.3s;
-}
-
-.download-btn:hover {
-  background-color: #71368a;
 }
 
 /* Saved Results */
