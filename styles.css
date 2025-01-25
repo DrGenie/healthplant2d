@@ -1,0 +1,111 @@
+/* Basic CSS reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0 auto;
+  max-width: 960px;
+  background: #fafafa;
+  color: #333;
+}
+
+/* Header */
+header {
+  background: #2c3e50;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Main container */
+main {
+  padding: 1rem;
+}
+
+/* Section styling */
+section {
+  background: #fff;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+/* Headings */
+section h2 {
+  margin-bottom: 0.5rem;
+}
+
+/* Instructions */
+#instructions ul {
+  margin-left: 1rem;
+  list-style-type: disc;
+  margin-top: 0.5rem;
+}
+
+/* Form styling */
+#decisionForm {
+  display: flex;
+  flex-direction: column;
+}
+
+#decisionForm label {
+  margin-top: 1rem;
+  font-weight: bold;
+  cursor: help; /* indicates there's a tooltip */
+}
+
+#decisionForm input,
+#decisionForm select {
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+#decisionForm .note {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 1rem;
+}
+
+/* Button styling */
+button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #2980b9;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+button:hover {
+  background: #216997;
+}
+
+/* Results section */
+#results h2 {
+  margin-bottom: 0.5rem;
+}
+
+#results pre {
+  background: #efefef;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 2em;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  margin: 2rem 0;
+  font-size: 0.9rem;
+  color: #666;
+}
