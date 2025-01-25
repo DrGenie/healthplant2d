@@ -2,15 +2,14 @@
  * script.js - T2DM Decision Aid (Preference-Space)
  * ---------------------------------------------------
  * Features:
- * - EXACT membership & utility coefficients from
- *   your final preference-space table for Exp1, Exp2, Exp3.
+ * - Exact membership & utility coefficients for Exp1, Exp2, Exp3.
  * - Disables "others" inputs for Exp1 & Exp2.
- * - Interactive sliders for risk/cost.
- * - Bar charts to visualize membership & plan uptake.
- * - Functional tab interface.
+ * - Interactive sliders with real-time value display.
+ * - Bar charts for class memberships and plan uptake.
+ * - Additional tabs for WTP, Comparison, and Saved Results.
+ * - Save and compare results across experiments and scenarios.
  ******************************************************/
 
-// Ensure the DOM is fully loaded before running scripts
 document.addEventListener('DOMContentLoaded', function() {
   // Grab elements
   const experimentEl = document.getElementById('experiment');
@@ -29,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const costOthersVal = document.getElementById('costOthersValue');
 
   const predictBtn = document.getElementById('predictBtn');
+  const saveBtn = document.getElementById('saveBtn');
 
   // Results
   const classProbabilitiesEl = document.getElementById('classProbabilities');
@@ -37,10 +37,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // Chart contexts
   const membershipCtx = document.getElementById('membershipChart').getContext('2d');
   const uptakeCtx = document.getElementById('uptakeChart').getContext('2d');
+  const wtpCtx = document.getElementById('wtpChart').getContext('2d');
+  const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
 
-  // We'll store references to the bar charts so we can update them
+  // Charts
   let membershipChart;
   let uptakeChart;
+  let wtpChart;
+  let comparisonChart;
+
+  // Saved Results
+  const savedResultsList = document.getElementById('savedResultsList');
+  const clearSavedBtn = document.getElementById('clearSavedBtn');
+
+  // Initialize Charts
+  initializeCharts();
+
+  // Initialize Saved Results from localStorage
+  loadSavedResults();
 
   /******************************************************
    * SLIDER LISTENERS - display their values in real-time
@@ -52,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Updates the text next to each slider
   function updateSliderValue(slider) {
     const val = slider.value;
     switch (slider.id) {
@@ -97,6 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
    * Button event to PREDICT
    ******************************************************/
   predictBtn.addEventListener('click', predictUptake);
+  saveBtn.addEventListener('click', saveCurrentResult);
+  clearSavedBtn.addEventListener('click', clearSavedResults);
 
   function predictUptake() {
     // Gather user inputs
@@ -135,6 +150,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 3) Display
     displayResults(label1, label2, pC1, pC2, planProb);
+
+    // 4) Update WTP Chart
+    updateWTChart(planProb);
+
+    // 5) Update Comparison Chart if already populated
+    // (Optional: Implementation can vary based on requirements)
   }
 
   /******************************************************
@@ -222,13 +243,9 @@ document.addEventListener('DOMContentLoaded', function() {
       label2 = "Class 2: Self-Focused";
     }
 
-    // Debug log (optional)
-    // console.log(`Membership xBeta: ${xBeta}`);
-
+    // Calculate probabilities
     const pClass1 = Math.exp(xBeta) / (1 + Math.exp(xBeta));
     const pClass2 = 1 - pClass1;
-
-    // console.log(`Membership pC1= ${pClass1}, pC2= ${pClass2}`);
 
     return { pC1: pClass1, pC2: pClass2, label1, label2 };
   }
@@ -327,11 +344,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Weighted final
     const overallPlanProb = (pC1 * planProbC1) + (pC2 * planProbC2);
 
-    // Debug logs (optional)
-    // console.log(`uPlan_C1= ${uPlan_C1}, uOptOut_C1= ${uOptOut_C1}, planProbC1= ${planProbC1}`);
-    // console.log(`uPlan_C2= ${uPlan_C2}, uOptOut_C2= ${uOptOut_C2}, planProbC2= ${planProb_C2}`);
-    // console.log(`overallPlanProb= ${overallPlanProb}`);
-
     return overallPlanProb;
   }
 
@@ -349,92 +361,355 @@ document.addEventListener('DOMContentLoaded', function() {
    * Display results -> update text + bar charts
    ******************************************************/
   function displayResults(label1, label2, pC1, pC2, planProb) {
-    // membership
+    // Display class probabilities
     classProbabilitiesEl.textContent = 
       `${label1}: ${(pC1*100).toFixed(2)}%\n` + 
       `${label2}: ${(pC2*100).toFixed(2)}%`;
 
-    // uptake
+    // Display plan uptake probability
     uptakeProbabilityEl.textContent = 
       `Probability of Plan Uptake (vs. Opt-Out): ${(planProb*100).toFixed(2)}%`;
 
-    // Draw bar charts
-    if (membershipChart) membershipChart.destroy();
-    if (uptakeChart) uptakeChart.destroy();
-
-    // membership bar chart
-    membershipChart = new Chart(membershipCtx, {
-      type: 'bar',
-      data: {
-        labels: [label1, label2],
-        datasets: [{
-          label: 'Class Membership (%)',
-          data: [(pC1*100), (pC2*100)],
-          backgroundColor: ['#3498db', '#f39c12']
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        scales: {
-          x: {
-            min: 0,
-            max: 100,
-            title: { display: true, text: 'Percentage' }
-          }
+    // Draw or Update membership bar chart
+    if (membershipChart) {
+      membershipChart.data.datasets[0].data = [(pC1*100), (pC2*100)];
+      membershipChart.update();
+    } else {
+      membershipChart = new Chart(membershipCtx, {
+        type: 'bar',
+        data: {
+          labels: [label1, label2],
+          datasets: [{
+            label: 'Class Membership (%)',
+            data: [(pC1*100), (pC2*100)],
+            backgroundColor: ['#3498db', '#f39c12']
+          }]
         },
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.parsed.x.toFixed(2)}%`;
+        options: {
+          indexAxis: 'y',
+          scales: {
+            x: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Percentage' }
+            }
+          },
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.x.toFixed(2)}%`;
+                }
               }
             }
           }
         }
-      }
-    });
+      });
+    }
 
-    // uptake bar chart
-    uptakeChart = new Chart(uptakeCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Plan Uptake Probability'],
-        datasets: [{
-          label: 'Probability (%)',
-          data: [(planProb*100)],
-          backgroundColor: ['#27ae60']
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        scales: {
-          x: {
-            min: 0,
-            max: 100,
-            title: { display: true, text: 'Percentage' }
-          }
+    // Draw or Update uptake bar chart
+    if (uptakeChart) {
+      uptakeChart.data.datasets[0].data = [(planProb*100)];
+      uptakeChart.update();
+    } else {
+      uptakeChart = new Chart(uptakeCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Plan Uptake Probability'],
+          datasets: [{
+            label: 'Probability (%)',
+            data: [(planProb*100)],
+            backgroundColor: ['#27ae60']
+          }]
         },
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.parsed.x.toFixed(2)}%`;
+        options: {
+          indexAxis: 'y',
+          scales: {
+            x: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Percentage' }
+            }
+          },
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.x.toFixed(2)}%`;
+                }
               }
             }
           }
         }
-      }
+      });
+    }
+  }
+
+  /******************************************************
+   * Initialize Charts
+   ******************************************************/
+  function initializeCharts() {
+    // Initialize empty charts
+    membershipChart = null;
+    uptakeChart = null;
+    wtpChart = null;
+    comparisonChart = null;
+  }
+
+  /******************************************************
+   * Update WTP Chart
+   ******************************************************/
+  function updateWTChart(planProb) {
+    if (wtpChart) {
+      wtpChart.data.datasets[0].data = [planProb * 100];
+      wtpChart.update();
+    } else {
+      wtpChart = new Chart(wtpCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Plan Uptake Probability'],
+          datasets: [{
+            label: 'Probability (%)',
+            data: [planProb * 100],
+            backgroundColor: ['#8e44ad']
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          scales: {
+            x: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Percentage' }
+            }
+          },
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.x.toFixed(2)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /******************************************************
+   * Save Current Result
+   ******************************************************/
+  function saveCurrentResult() {
+    // Gather current inputs and results
+    const age = document.getElementById('age').value;
+    const gender = document.getElementById('gender').value;
+    const race = document.getElementById('race').value;
+    const income = document.getElementById('income').value;
+    const degree = document.getElementById('degree').value;
+    const goodHealth = document.getElementById('goodHealth').value;
+    const experiment = document.getElementById('experiment').value;
+
+    const effSelf = efficacySelfEl.value;
+    const rSelf = riskSelfEl.value;
+    const cSelf = costSelfEl.value;
+    const effOthers = efficacyOthersEl.value;
+    const rOthers = riskOthersEl.value;
+    const cOthers = costOthersEl.value;
+
+    const classProbText = classProbabilitiesEl.textContent;
+    const uptakeProbText = uptakeProbabilityEl.textContent;
+
+    if (!classProbText || !uptakeProbText) {
+      alert("Please predict the plan uptake before saving the result.");
+      return;
+    }
+
+    const timestamp = new Date().toLocaleString();
+
+    const savedResult = {
+      timestamp,
+      age,
+      gender,
+      race,
+      income,
+      degree,
+      goodHealth,
+      experiment,
+      effSelf,
+      rSelf,
+      cSelf,
+      effOthers,
+      rOthers,
+      cOthers,
+      classProbText,
+      uptakeProbText
+    };
+
+    // Get existing saved results from localStorage
+    let savedResults = JSON.parse(localStorage.getItem('savedResults')) || [];
+
+    // Add new result
+    savedResults.push(savedResult);
+
+    // Save back to localStorage
+    localStorage.setItem('savedResults', JSON.stringify(savedResults));
+
+    // Update the UI
+    addSavedResultToList(savedResult);
+
+    alert("Result saved successfully!");
+  }
+
+  /******************************************************
+   * Load Saved Results from localStorage
+   ******************************************************/
+  function loadSavedResults() {
+    let savedResults = JSON.parse(localStorage.getItem('savedResults')) || [];
+
+    savedResults.forEach(result => {
+      addSavedResultToList(result);
     });
   }
 
   /******************************************************
-   * Tab functionality
+   * Add Saved Result to the List
    ******************************************************/
-  window.openTab = function(evt, tabName) {
+  function addSavedResultToList(result) {
+    const li = document.createElement('li');
+    li.textContent = `${result.timestamp} - Exp ${result.experiment}`;
+    
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = "View";
+    viewBtn.addEventListener('click', () => {
+      displaySavedResult(result);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = "Delete";
+    deleteBtn.style.marginLeft = "10px";
+    deleteBtn.addEventListener('click', () => {
+      deleteSavedResult(result.timestamp);
+    });
+
+    li.appendChild(viewBtn);
+    li.appendChild(deleteBtn);
+    savedResultsList.appendChild(li);
+  }
+
+  /******************************************************
+   * Display Saved Result in Comparison Chart
+   ******************************************************/
+  function displaySavedResult(result) {
+    // Extract plan uptake probability
+    const uptakeMatch = result.uptakeProbText.match(/([\d.]+)%/);
+    const uptake = uptakeMatch ? parseFloat(uptakeMatch[1]) : 0;
+
+    // Extract class probabilities
+    const classMatch = result.classProbText.match(/(Class 1: [^:]+): ([\d.]+)%\n(Class 2: [^:]+): ([\d.]+)%/);
+    let class1Label = "Class 1";
+    let class2Label = "Class 2";
+    let class1Prob = 0;
+    let class2Prob = 0;
+    if (classMatch) {
+      class1Label = classMatch[1];
+      class1Prob = parseFloat(classMatch[2]);
+      class2Label = classMatch[3];
+      class2Prob = parseFloat(classMatch[4]);
+    }
+
+    // Add data to comparison chart
+    if (!comparisonChart) {
+      comparisonChart = new Chart(comparisonCtx, {
+        type: 'bar',
+        data: {
+          labels: [class1Label, class2Label, 'Plan Uptake'],
+          datasets: []
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: {
+            x: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Percentage' }
+            }
+          },
+          plugins: {
+            legend: { display: true },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.x.toFixed(2)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const color = getRandomColor();
+    comparisonChart.data.datasets.push({
+      label: result.timestamp,
+      data: [class1Prob, class2Prob, uptake],
+      backgroundColor: color
+    });
+
+    comparisonChart.update();
+  }
+
+  /******************************************************
+   * Delete Saved Result
+   ******************************************************/
+  function deleteSavedResult(timestamp) {
+    let savedResults = JSON.parse(localStorage.getItem('savedResults')) || [];
+    savedResults = savedResults.filter(result => result.timestamp !== timestamp);
+    localStorage.setItem('savedResults', JSON.stringify(savedResults));
+
+    // Refresh the list
+    savedResultsList.innerHTML = '';
+    savedResults.forEach(result => {
+      addSavedResultToList(result);
+    });
+
+    alert("Saved result deleted.");
+  }
+
+  /******************************************************
+   * Clear All Saved Results
+   ******************************************************/
+  function clearSavedResults() {
+    if (confirm("Are you sure you want to clear all saved results?")) {
+      localStorage.removeItem('savedResults');
+      savedResultsList.innerHTML = '';
+      alert("All saved results have been cleared.");
+    }
+  }
+
+  /******************************************************
+   * Generate Random Color for Comparison Chart
+   ******************************************************/
+  function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++ ) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  /******************************************************
+   * Tab Functionality for Additional Tabs
+   ******************************************************/
+  window.openAdditionalTab = function(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
@@ -454,8 +729,5 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
   }
-
-  // Get the element with id="defaultOpen" and click on it to open the default tab
-  document.getElementById("defaultOpen").click();
 
 });
