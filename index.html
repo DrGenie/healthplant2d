@@ -9,6 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Load Chart.js Error Bars Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-error-bars@1.0.0/dist/chartjs-plugin-error-bars.min.js"></script>
+  <!-- Load jsPDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header>
@@ -56,9 +58,14 @@
       <div id="WTPWithoutDemographics" class="tabcontent">
         <h2>Willingness To Pay (WTP) Without Demographics</h2>
         <div class="wtp-container">
-          <canvas id="wtpEfficacyChartWithoutDemo" width="400" height="200"></canvas>
-          <canvas id="wtpRiskChartWithoutDemo" width="400" height="200"></canvas>
-          <button id="downloadWTPWithoutDemo" class="download-btn">Download WTP Without Demographics</button>
+          <div class="chart-wrapper">
+            <canvas id="wtpEfficacyChartWithoutDemo" width="400" height="200"></canvas>
+            <button id="downloadWTPWithoutDemo" class="download-btn">Download WTP for Efficacy</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="wtpRiskChartWithoutDemo" width="400" height="200"></canvas>
+            <button id="downloadWTPWithoutDemoRisk" class="download-btn">Download WTP for Risk</button>
+          </div>
         </div>
       </div>
 
@@ -66,10 +73,18 @@
       <div id="WTPWithDemographics" class="tabcontent">
         <h2>Willingness To Pay (WTP) With Demographics</h2>
         <div class="wtp-container">
-          <canvas id="wtpEfficacyChartWithDemo" width="400" height="200"></canvas>
-          <canvas id="wtpRiskChartWithDemo" width="400" height="200"></canvas>
-          <canvas id="wtpOthersChartWithDemo" width="400" height="200"></canvas>
-          <button id="downloadWTPWithDemo" class="download-btn">Download WTP With Demographics</button>
+          <div class="chart-wrapper">
+            <canvas id="wtpEfficacyChartWithDemo" width="400" height="200"></canvas>
+            <button id="downloadWTPWithDemoEfficacy" class="download-btn">Download WTP for Efficacy</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="wtpRiskChartWithDemo" width="400" height="200"></canvas>
+            <button id="downloadWTPWithDemoRisk" class="download-btn">Download WTP for Risk</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="wtpOthersChartWithDemo" width="400" height="200"></canvas>
+            <button id="downloadWTPWithDemoOthers" class="download-btn">Download WTP for Others</button>
+          </div>
         </div>
       </div>
 
