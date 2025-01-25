@@ -16,20 +16,26 @@
     <section id="instructions">
       <p>
         This tool implements the latent class model from three experiments 
-        (in preference space), reflecting how individuals trade off efficacy, 
-        risk, and cost for T2DM treatments. 
+        (<strong>in preference space</strong>), reflecting how individuals trade off efficacy, 
+        risk, and cost for T2DM treatments. The coefficients follow your table exactly, 
+        including the negative sign for <em>age</em> in class membership. Depending on user 
+        inputs (especially high efficacy, low cost, low risk), the logistic function may yield 
+        probabilities near 100% or 0%.
       </p>
       <ul>
-        <li><strong>Experiment 1:</strong> Only self-focused attributes.</li>
-        <li><strong>Experiment 2:</strong> Self &amp; others in poorer health, 
-            but outcomes are equal (so there are no separate “others” parameters).</li>
-        <li><strong>Experiment 3:</strong> Self vs. others in poorer health with 
-            unequal outcomes (includes separate “others” parameters).</li>
+        <li><strong>Experiment 1:</strong> Only self-focused attributes. "Others" are irrelevant.</li>
+        <li><strong>Experiment 2:</strong> Self &amp; others in poorer health, but outcomes are 
+          considered equal, so no separate “others” parameters.</li>
+        <li><strong>Experiment 3:</strong> Self vs. others in poorer health with <em>unequal</em> 
+          outcomes (includes separate “others” parameters in the utility).</li>
       </ul>
       <p>
         Enter the patient's demographic profile, select an experiment, and 
         adjust attribute sliders/inputs to see the predicted class membership 
-        and plan uptake probability versus opting out.
+        and plan uptake probability versus opting out. 
+        <br/>
+        <em>Note:</em> If you consistently see 100% or 0% values, it may reflect large 
+        magnitude utilities. Check the console for debugging logs.
       </p>
     </section>
 
