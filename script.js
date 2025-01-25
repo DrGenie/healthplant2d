@@ -3,10 +3,11 @@
  * ---------------------------------------------------
  * Features:
  * - EXACT membership & utility coefficients from
- *   the final results for Exp1, Exp2, Exp3.
+ *   your final preference-space table for Exp1, Exp2, Exp3.
  * - Disables "others" inputs for Exp1 & Exp2.
  * - Interactive sliders for risk/cost.
  * - Bar charts to visualize membership & plan uptake.
+ * - Basic logs (commented out) for debugging. 
  ******************************************************/
 
 // Grab elements
@@ -115,12 +116,11 @@ function predictUptake() {
   const cOthers = parseFloat(costOthersEl.value);
 
   // Basic validation
-  // If Exp1 or Exp2, others must be zero -> already forced by toggle. 
-  // Age range is 18-120.
   if (age < 18 || age > 120) {
     alert("Please ensure Age is between 18 and 120.");
     return;
   }
+  // For Exp1/Exp2, "others" are forcibly zero, so no further checks needed.
 
   // 1) Class membership
   const { pC1, pC2, label1, label2 } = computeClassMembership(
@@ -140,9 +140,10 @@ function predictUptake() {
  * computeClassMembership
  * Using logistic transform with the EXACT coefficients
  * from your Probability model for each experiment.
+ * 
+ * Note that for age, the table has negative signs.
  ******************************************************/
 function computeClassMembership(expChoice, demo) {
-  // Convert demographics to 0/1 or numeric
   const female = (demo.gender === "female") ? 1 : 0;
   const white = (demo.race === "white") ? 1 : 0;
   const black = (demo.race === "black") ? 1 : 0;
@@ -158,64 +159,85 @@ function computeClassMembership(expChoice, demo) {
   if (expChoice === '1') {
     // Experiment 1
     // logit(Class1 / Class2) = 0.5317 
-    //    + (-0.2915)*Female + (-0.5387)*Age + (0.2843)*White + (0.5616)*Black
-    //    + (0.4366)*HighIncome + (-0.1365)*Degree + (0.0204)*GoodHealth
+    //   + (-0.2915)*Female 
+    //   + (-0.5387)*Age 
+    //   + ( 0.2843)*White 
+    //   + ( 0.5616)*Black
+    //   + ( 0.4366)*HighIncome 
+    //   + (-0.1365)*Degree 
+    //   + ( 0.0204)*GoodHealth
     xBeta = 0.5317 
-            + (-0.2915)*female
-            + (-0.5387)*age
-            + (0.2843)*white
-            + (0.5616)*black
-            + (0.4366)*highIncome
-            + (-0.1365)*deg
-            + (0.0204)*gHealth;
+         + (-0.2915)*female
+         + (-0.5387)*age
+         + ( 0.2843)*white
+         + ( 0.5616)*black
+         + ( 0.4366)*highIncome
+         + (-0.1365)*deg
+         + ( 0.0204)*gHealth;
+
     label1 = "Class 1: Risk-Averse";
     label2 = "Class 2: Cost-Sensitive";
   }
   else if (expChoice === '2') {
     // Experiment 2
     // logit(Class1 / Class2) = 0.7645
-    //   + (-0.3959)*Female + (-0.6826)*Age + 0.5410*White + 0.7393*Black
-    //   + 0.0443*HighInc + (-0.0162)*Degree + (-0.0668)*GoodHealth
+    //   + (-0.3959)*Female 
+    //   + (-0.6826)*Age
+    //   + ( 0.5410)*White 
+    //   + ( 0.7393)*Black
+    //   + ( 0.0443)*HighInc
+    //   + (-0.0162)*Degree
+    //   + (-0.0668)*GoodHealth
     xBeta = 0.7645
-            + (-0.3959)*female
-            + (-0.6826)*age
-            + (0.5410)*white
-            + (0.7393)*black
-            + (0.0443)*highIncome
-            + (-0.0162)*deg
-            + (-0.0668)*gHealth;
+         + (-0.3959)*female
+         + (-0.6826)*age
+         + ( 0.5410)*white
+         + ( 0.7393)*black
+         + ( 0.0443)*highIncome
+         + (-0.0162)*deg
+         + (-0.0668)*gHealth;
+
     label1 = "Class 1: Equity-Focused";
     label2 = "Class 2: Cost-Sensitive";
   }
   else {
     // Experiment 3
     // logit(Class1 / Class2) = 1.2089
-    //   + (-0.4362)*Female + (-0.6528)*Age + 0.2580*White + 0.5351*Black
-    //   + (-0.3153)*HighInc + (-0.0497)*Degree + (0.0320)*GoodHealth
+    //   + (-0.4362)*Female
+    //   + (-0.6528)*Age
+    //   + ( 0.2580)*White
+    //   + ( 0.5351)*Black
+    //   + (-0.3153)*HighInc
+    //   + (-0.0497)*Degree
+    //   + ( 0.0320)*GoodHealth
     xBeta = 1.2089
-            + (-0.4362)*female
-            + (-0.6528)*age
-            + (0.2580)*white
-            + (0.5351)*black
-            + (-0.3153)*highIncome
-            + (-0.0497)*deg
-            + (0.0320)*gHealth;
+         + (-0.4362)*female
+         + (-0.6528)*age
+         + ( 0.2580)*white
+         + ( 0.5351)*black
+         + (-0.3153)*highIncome
+         + (-0.0497)*deg
+         + ( 0.0320)*gHealth;
+
     label1 = "Class 1: Equity-Focused";
     label2 = "Class 2: Self-Focused";
   }
 
+  // Debug log (uncomment to see in console):
+  // console.log(`Membership xBeta: ${xBeta}`);
+
   const pClass1 = Math.exp(xBeta) / (1 + Math.exp(xBeta));
   const pClass2 = 1 - pClass1;
+
+  // console.log(`Membership pC1= ${pClass1}, pC2= ${pClass2}`);
+
   return { pC1: pClass1, pC2: pClass2, label1, label2 };
 }
 
 /******************************************************
  * computePlanUptake
  * We use the final preference-space utilities:
- *   UPlan = asc + efficacy*(eff) + risk*(r) + cost*(c)
- *   UOptOut = optout
- * Probability(Plan|Class i) = 
- *   exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
+ * Probability(Plan|Class i) = exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
  * Weighted by pC1, pC2 -> final plan uptake.
  ******************************************************/
 function computePlanUptake(expChoice, pC1, pC2,
@@ -227,42 +249,48 @@ function computePlanUptake(expChoice, pC1, pC2,
   if (expChoice === '1') {
     // =============== Experiment 1 ===============
     // Class 1 (Risk-Averse)
-    // asc=-0.1484, optout=-1.7885, efficacy=1.6944, risk=-1.8439, cost=-0.0650
-    const uPlan_C1 = -0.1484 
-      + (1.6944)*effS
+    // asc=-0.1484, optout=-1.7885
+    // efficacy=1.6944, risk=-1.8439, cost=-0.0650
+    const uPlan_C1 = -0.1484
+      + 1.6944*effS
       + (-1.8439)*rS
       + (-0.0650)*cS;
     const uOptOut_C1 = -1.7885;
     planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
     // Class 2 (Cost-Sensitive)
-    // asc=-0.1010, optout=0.9865, efficacy=2.7260, risk=-2.0641, cost=-0.3963
+    // asc=-0.1010, optout=0.9865
+    // efficacy=2.7260, risk=-2.0641, cost=-0.3963
     const uPlan_C2 = -0.1010
-      + (2.7260)*effS
+      + 2.7260*effS
       + (-2.0641)*rS
       + (-0.3963)*cS;
     const uOptOut_C2 = 0.9865;
     planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
+
   }
   else if (expChoice === '2') {
     // =============== Experiment 2 ===============
     // Class 1 (Equity-Focused)
-    // asc=-0.0772, optout=-1.7062, efficacy=1.9771, risk=-1.3736, cost=-0.0940
+    // asc=-0.0772, optout=-1.7062
+    // efficacy=1.9771, risk=-1.3736, cost=-0.0940
     const uPlan_C1 = -0.0772
-      + (1.9771)*effS
+      + 1.9771*effS
       + (-1.3736)*rS
       + (-0.0940)*cS;
     const uOptOut_C1 = -1.7062;
     planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
     // Class 2 (Cost-Sensitive)
-    // asc=0.0654, optout=1.6773, efficacy=2.5939, risk=0.0550, cost=-0.3627
+    // asc=0.0654, optout=1.6773
+    // efficacy=2.5939, risk=0.0550, cost=-0.3627
     const uPlan_C2 = 0.0654
-      + (2.5939)*effS
+      + 2.5939*effS
       + (0.0550)*rS
       + (-0.3627)*cS;
     const uOptOut_C2 = 1.6773;
     planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
+
   }
   else {
     // =============== Experiment 3 ===============
@@ -298,10 +326,20 @@ function computePlanUptake(expChoice, pC1, pC2,
   }
 
   // Weighted final
-  return pC1 * planProbC1 + pC2 * planProbC2;
+  const overallPlanProb = (pC1 * planProbC1) + (pC2 * planProbC2);
+
+  // Debug logs (uncomment to see):
+  // console.log(`uPlan_C1= ${uPlan_C1}, uOptOut_C1= ${uOptOut_C1}, planProbC1= ${planProbC1}`);
+  // console.log(`uPlan_C2= ${uPlan_C2}, uOptOut_C2= ${uOptOut_C2}, planProbC2= ${planProbC2}`);
+  // console.log(`overallPlanProb= ${overallPlanProb}`);
+
+  return overallPlanProb;
 }
 
-// logisticChoice => Probability(Plan) = exp(UPlan) / [exp(UPlan) + exp(UOpt)]
+/******************************************************
+ * logisticChoice => Probability(Plan) = exp(UPlan)
+ *  / [ exp(UPlan) + exp(UOptOut) ]
+ ******************************************************/
 function logisticChoice(uPlan, uOpt) {
   const expPlan = Math.exp(uPlan);
   const expOpt = Math.exp(uOpt);
@@ -319,13 +357,12 @@ function displayResults(label1, label2, pC1, pC2, planProb) {
 
   // uptake
   uptakeProbabilityEl.textContent = 
-    `Plan Uptake Probability (vs. Opt-Out): ${(planProb*100).toFixed(2)}%`;
+    `Probability of Plan Uptake (vs. Opt-Out): ${(planProb*100).toFixed(2)}%`;
 
   // Draw bar charts
   if (membershipChart) membershipChart.destroy();
   if (uptakeChart) uptakeChart.destroy();
 
-  // membership bar chart
   membershipChart = new Chart(membershipCtx, {
     type: 'bar',
     data: {
@@ -352,7 +389,6 @@ function displayResults(label1, label2, pC1, pC2, planProb) {
     }
   });
 
-  // uptake bar chart
   uptakeChart = new Chart(uptakeCtx, {
     type: 'bar',
     data: {
@@ -381,10 +417,9 @@ function displayResults(label1, label2, pC1, pC2, planProb) {
 }
 
 /******************************************************
- * We'll load a minimal CDN for Chart.js inside script
- * if you'd prefer a local import, you can do so. 
+ * We'll load a minimal CDN for Chart.js 
+ * so the bar charts work. 
  ******************************************************/
-// Dynamically insert Chart.js
 const scriptChart = document.createElement('script');
 scriptChart.src = 'https://cdn.jsdelivr.net/npm/chart.js';
 document.head.appendChild(scriptChart);
