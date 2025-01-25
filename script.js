@@ -1,311 +1,390 @@
-/*****************************************************
- * script.js
- * Comprehensive Decision Aid for T2DM Plan Uptake
- * --------------------------------------------------
- * 1) Validates input ranges.
- * 2) Computes latent class membership using the actual
- *    coefficients for each experiment from Table 3.
- * 3) Computes utility for the Plan vs. Opt-Out in each
- *    class, using the relevant WTP parameters.
- * 4) Calculates the overall Plan uptake probability,
- *    weighting by class membership.
- *****************************************************/
+/******************************************************
+ * script.js - T2DM Decision Aid (Preference-Space)
+ * ---------------------------------------------------
+ * Features:
+ * - EXACT membership & utility coefficients from
+ *   the final results for Exp1, Exp2, Exp3.
+ * - Disables "others" inputs for Exp1 & Exp2.
+ * - Interactive sliders for risk/cost.
+ * - Bar charts to visualize membership & plan uptake.
+ ******************************************************/
 
-document.getElementById('predictBtn').addEventListener('click', predictUptake);
+// Grab elements
+const experimentEl = document.getElementById('experiment');
+const efficacySelfEl = document.getElementById('efficacySelf');
+const riskSelfEl = document.getElementById('riskSelf');
+const costSelfEl = document.getElementById('costSelf');
+const efficacyOthersEl = document.getElementById('efficacyOthers');
+const riskOthersEl = document.getElementById('riskOthers');
+const costOthersEl = document.getElementById('costOthers');
+
+const efficacySelfVal = document.getElementById('efficacySelfValue');
+const riskSelfVal = document.getElementById('riskSelfValue');
+const costSelfVal = document.getElementById('costSelfValue');
+const efficacyOthersVal = document.getElementById('efficacyOthersValue');
+const riskOthersVal = document.getElementById('riskOthersValue');
+const costOthersVal = document.getElementById('costOthersValue');
+
+const predictBtn = document.getElementById('predictBtn');
+
+// Results
+const classProbabilitiesEl = document.getElementById('classProbabilities');
+const uptakeProbabilityEl = document.getElementById('uptakeProbability');
+
+// Chart contexts
+const membershipCtx = document.getElementById('membershipChart').getContext('2d');
+const uptakeCtx = document.getElementById('uptakeChart').getContext('2d');
+
+// We'll store references to the bar charts so we can update them
+let membershipChart;
+let uptakeChart;
+
+/******************************************************
+ * SLIDER LISTENERS - display their values in real-time
+ ******************************************************/
+[efficacySelfEl, riskSelfEl, costSelfEl,
+ efficacyOthersEl, riskOthersEl, costOthersEl].forEach(slider => {
+  slider.addEventListener('input', () => {
+    updateSliderValue(slider);
+  });
+});
+
+// Updates the text next to each slider
+function updateSliderValue(slider) {
+  const val = slider.value;
+  switch (slider.id) {
+    case 'efficacySelf': efficacySelfVal.textContent = val; break;
+    case 'riskSelf': riskSelfVal.textContent = val; break;
+    case 'costSelf': costSelfVal.textContent = val; break;
+    case 'efficacyOthers': efficacyOthersVal.textContent = val; break;
+    case 'riskOthers': riskOthersVal.textContent = val; break;
+    case 'costOthers': costOthersVal.textContent = val; break;
+  }
+}
+
+/******************************************************
+ * EXPERIMENT CHANGE -> handle disabling "others" 
+ * in Exp1 & Exp2. In Exp3, enable them.
+ ******************************************************/
+experimentEl.addEventListener('change', toggleOthers);
+
+function toggleOthers() {
+  const expChoice = experimentEl.value;
+  const disableOthers = (expChoice !== '3');
+
+  efficacyOthersEl.disabled = disableOthers;
+  riskOthersEl.disabled = disableOthers;
+  costOthersEl.disabled = disableOthers;
+
+  // If disabled, set them to 0
+  if (disableOthers) {
+    efficacyOthersEl.value = 0;
+    riskOthersEl.value = 0;
+    costOthersEl.value = 0;
+    efficacyOthersVal.textContent = "0";
+    riskOthersVal.textContent = "0";
+    costOthersVal.textContent = "0";
+  }
+}
+
+// Initialize on page load
+toggleOthers();
+
+/******************************************************
+ * Button event to PREDICT
+ ******************************************************/
+predictBtn.addEventListener('click', predictUptake);
 
 function predictUptake() {
-  // 1) Gather and validate user inputs
-  const ageVal = parseFloat(document.getElementById('age').value);
-  const genderVal = document.getElementById('gender').value;
-  const raceVal = document.getElementById('race').value;
-  const incomeVal = document.getElementById('income').value;
-  const degreeVal = document.getElementById('degree').value;
-  const goodHealthVal = document.getElementById('goodHealth').value;
+  // Gather user inputs
+  const age = parseFloat(document.getElementById('age').value);
+  const gender = document.getElementById('gender').value;
+  const race = document.getElementById('race').value;
+  const income = document.getElementById('income').value;
+  const degree = document.getElementById('degree').value;
+  const goodHealth = document.getElementById('goodHealth').value;
 
-  const efficacySelf = parseFloat(document.getElementById('efficacySelf').value);
-  const riskSelf = parseFloat(document.getElementById('riskSelf').value);
-  const costSelf = parseFloat(document.getElementById('costSelf').value);
-  const efficacyOthers = parseFloat(document.getElementById('efficacyOthers').value);
-  const riskOthers = parseFloat(document.getElementById('riskOthers').value);
-  const costOthers = parseFloat(document.getElementById('costOthers').value);
+  const expChoice = document.getElementById('experiment').value;
 
-  const experimentChoice = document.getElementById('experiment').value;
+  // Sliders
+  const effSelf = parseFloat(efficacySelfEl.value);
+  const rSelf = parseFloat(riskSelfEl.value);
+  const cSelf = parseFloat(costSelfEl.value);
+  const effOthers = parseFloat(efficacyOthersEl.value);
+  const rOthers = parseFloat(riskOthersEl.value);
+  const cOthers = parseFloat(costOthersEl.value);
 
-  // Basic Range Checks
-  if (
-    ageVal < 18 || ageVal > 120 ||
-    riskSelf < 0 || riskSelf > 100 ||
-    riskOthers < 0 || riskOthers > 100 ||
-    costSelf < 0 || costSelf > 9999 ||
-    costOthers < 0 || costOthers > 9999 ||
-    efficacySelf < 0 || efficacySelf > 100 ||
-    efficacyOthers < 0 || efficacyOthers > 100
-  ) {
-    alert("Please ensure all inputs are within the specified ranges.");
+  // Basic validation
+  // If Exp1 or Exp2, others must be zero -> already forced by toggle. 
+  // Age range is 18-120.
+  if (age < 18 || age > 120) {
+    alert("Please ensure Age is between 18 and 120.");
     return;
   }
 
-  // 2) Compute Class Membership for the selected experiment
-  const classProb = computeClassMembership(
-    experimentChoice,
-    {
-      age: ageVal,
-      gender: genderVal,
-      race: raceVal,
-      income: incomeVal,
-      degree: degreeVal,
-      goodHealth: goodHealthVal
-    }
+  // 1) Class membership
+  const { pC1, pC2, label1, label2 } = computeClassMembership(
+    expChoice, { gender, age, race, income, degree, goodHealth }
   );
 
-  // 3) Compute Probability of Plan Uptake for each class
+  // 2) Plan uptake
   const planProb = computePlanUptake(
-    experimentChoice,
-    classProb,
-    { 
-      efficacySelf, 
-      riskSelf,
-      costSelf,
-      efficacyOthers,
-      riskOthers,
-      costOthers
-    }
+    expChoice, pC1, pC2, effSelf, rSelf, cSelf, effOthers, rOthers, cOthers
   );
 
-  // 4) Display Results
-  displayResults(classProb, planProb);
+  // 3) Display
+  displayResults(label1, label2, pC1, pC2, planProb);
 }
 
-/************************************************************
+/******************************************************
  * computeClassMembership
- * Uses a logit model for membership in Class1 vs. Class2
- * with the parameters from Table 3. For each experiment:
- *    logit(P(Class1)/P(Class2)) = Beta0 + BetaX * X ...
- * Then P(Class1) = exp(XBeta) / [1 + exp(XBeta)].
- * Class2 is 1 - P(Class1).
- ************************************************************/
+ * Using logistic transform with the EXACT coefficients
+ * from your Probability model for each experiment.
+ ******************************************************/
 function computeClassMembership(expChoice, demo) {
-  let xBeta = 0;
-
-  // Demo indicators
+  // Convert demographics to 0/1 or numeric
   const female = (demo.gender === "female") ? 1 : 0;
   const white = (demo.race === "white") ? 1 : 0;
   const black = (demo.race === "black") ? 1 : 0;
-  const highInc = (demo.income === "high") ? 1 : 0;
-  const hasDegree = (demo.degree === "yes") ? 1 : 0;
-  const goodHealth = (demo.goodHealth === "yes") ? 1 : 0;
-  const age = demo.age; // used directly
+  const highIncome = (demo.income === "high") ? 1 : 0;
+  const deg = (demo.degree === "yes") ? 1 : 0;
+  const gHealth = (demo.goodHealth === "yes") ? 1 : 0;
+  const age = demo.age;
 
-  let class1Label = "";
-  let class2Label = "";
+  let xBeta = 0;
+  let label1 = "";
+  let label2 = "";
 
-  if (expChoice === "1") {
-    // Experiment 1: Risk-Averse (CL1) vs. Cost-Sensitive (CL2)
-    // Table 3 membership parameters for CL1:
-    // logit(P(CL1)/P(CL2)) = 0.53 + (-0.29)*Female + 0.54*Age
-    //                        + (-0.26)*White + (-0.53)*Black
-    //                        + 0.45*HighIncome + 0.11*Degree
-    //                        + (-0.03)*GoodHealth
-    xBeta = 0.53 
-            + (-0.29)*female
-            + 0.54*age
-            + (-0.26)*white
-            + (-0.53)*black
-            + 0.45*highInc
-            + 0.11*hasDegree
-            + (-0.03)*goodHealth;
-
-    class1Label = "Risk-Averse";
-    class2Label = "Cost-Sensitive";
+  if (expChoice === '1') {
+    // Experiment 1
+    // logit(Class1 / Class2) = 0.5317 
+    //    + (-0.2915)*Female + (-0.5387)*Age + (0.2843)*White + (0.5616)*Black
+    //    + (0.4366)*HighIncome + (-0.1365)*Degree + (0.0204)*GoodHealth
+    xBeta = 0.5317 
+            + (-0.2915)*female
+            + (-0.5387)*age
+            + (0.2843)*white
+            + (0.5616)*black
+            + (0.4366)*highIncome
+            + (-0.1365)*deg
+            + (0.0204)*gHealth;
+    label1 = "Class 1: Risk-Averse";
+    label2 = "Class 2: Cost-Sensitive";
   }
-  else if (expChoice === "2") {
-    // Experiment 2: Equity-Focused (CL1) vs. Cost-Sensitive (CL2)
-    // logit(P(CL1)/P(CL2)) = 0.76 + (-0.40)*Female + 0.68*Age
-    //                        + (-0.53)*White + (-0.73)*Black
-    //                        + (-0.05)*HighIncome + 0.02*Degree
-    //                        + 0.06*GoodHealth
-    xBeta = 0.76
-            + (-0.40)*female
-            + 0.68*age
-            + (-0.53)*white
-            + (-0.73)*black
-            + (-0.05)*highInc
-            + 0.02*hasDegree
-            + 0.06*goodHealth;
-
-    class1Label = "Equity-Focused";
-    class2Label = "Cost-Sensitive";
+  else if (expChoice === '2') {
+    // Experiment 2
+    // logit(Class1 / Class2) = 0.7645
+    //   + (-0.3959)*Female + (-0.6826)*Age + 0.5410*White + 0.7393*Black
+    //   + 0.0443*HighInc + (-0.0162)*Degree + (-0.0668)*GoodHealth
+    xBeta = 0.7645
+            + (-0.3959)*female
+            + (-0.6826)*age
+            + (0.5410)*white
+            + (0.7393)*black
+            + (0.0443)*highIncome
+            + (-0.0162)*deg
+            + (-0.0668)*gHealth;
+    label1 = "Class 1: Equity-Focused";
+    label2 = "Class 2: Cost-Sensitive";
   }
   else {
-    // Experiment 3: Equity-Focused (CL1) vs. Self-Focused (CL2)
-    // logit(P(CL1)/P(CL2)) = 1.21 + (-0.44)*Female + 0.66*Age
-    //                        + (-0.22)*White + (-0.45)*Black
-    //                        + (-0.30)*HighIncome + 0.08*Degree
-    //                        + (-0.003)*GoodHealth
-    xBeta = 1.21
-            + (-0.44)*female
-            + 0.66*age
-            + (-0.22)*white
-            + (-0.45)*black
-            + (-0.30)*highInc
-            + 0.08*hasDegree
-            + (-0.003)*goodHealth;
-
-    class1Label = "Equity-Focused";
-    class2Label = "Self-Focused";
+    // Experiment 3
+    // logit(Class1 / Class2) = 1.2089
+    //   + (-0.4362)*Female + (-0.6528)*Age + 0.2580*White + 0.5351*Black
+    //   + (-0.3153)*HighInc + (-0.0497)*Degree + (0.0320)*GoodHealth
+    xBeta = 1.2089
+            + (-0.4362)*female
+            + (-0.6528)*age
+            + (0.2580)*white
+            + (0.5351)*black
+            + (-0.3153)*highIncome
+            + (-0.0497)*deg
+            + (0.0320)*gHealth;
+    label1 = "Class 1: Equity-Focused";
+    label2 = "Class 2: Self-Focused";
   }
 
   const pClass1 = Math.exp(xBeta) / (1 + Math.exp(xBeta));
   const pClass2 = 1 - pClass1;
-
-  return {
-    labels: [class1Label, class2Label],
-    probs: [pClass1, pClass2]
-  };
+  return { pC1: pClass1, pC2: pClass2, label1, label2 };
 }
 
-/************************************************************
+/******************************************************
  * computePlanUptake
- * For each class, we calculate:
- *    U(Plan) = ASC + sum(coeff*attributes)
- *    U(OptOut) = OptOut coefficient
- * Probability(Plan|Class i) = exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
- * Overall Probability(Plan) = sum over i of [P(Class i)*Probability(Plan|Class i)]
- ************************************************************/
-function computePlanUptake(expChoice, classData, attrs) {
+ * We use the final preference-space utilities:
+ *   UPlan = asc + efficacy*(eff) + risk*(r) + cost*(c)
+ *   UOptOut = optout
+ * Probability(Plan|Class i) = 
+ *   exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
+ * Weighted by pC1, pC2 -> final plan uptake.
+ ******************************************************/
+function computePlanUptake(expChoice, pC1, pC2,
+  effS, rS, cS, effO, rO, cO) {
 
-  const [class1Label, class2Label] = classData.labels;
-  const [pC1, pC2] = classData.probs;
+  let planProbC1 = 0;
+  let planProbC2 = 0;
 
-  // We'll define a helper function for each experiment
-  // that returns Probability(Plan|Class i).
-  let planProbClass1 = 0;
-  let planProbClass2 = 0;
+  if (expChoice === '1') {
+    // =============== Experiment 1 ===============
+    // Class 1 (Risk-Averse)
+    // asc=-0.1484, optout=-1.7885, efficacy=1.6944, risk=-1.8439, cost=-0.0650
+    const uPlan_C1 = -0.1484 
+      + (1.6944)*effS
+      + (-1.8439)*rS
+      + (-0.0650)*cS;
+    const uOptOut_C1 = -1.7885;
+    planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
-  if (expChoice === "1") {
-    // Experiment 1
-    // Class1 (Risk-Averse):
-    // ASC = -2.28
-    // Opt-out = -27.50
-    // Efficacy(self)=26.06, Risk(self)=-28.35, Cost(self)=-0.065
-    const uPlan_RA = -2.28 
-      + (26.06 * attrs.efficacySelf)
-      + (-28.35 * attrs.riskSelf)
-      + (-0.065 * attrs.costSelf);
-    // Utility of OptOut for RA:
-    // UOptOut = -27.50
-    const uOptOut_RA = -27.50;
-
-    planProbClass1 = calcChoiceProb(uPlan_RA, uOptOut_RA);
-
-    // Class2 (Cost-Sensitive):
-    // ASC = -0.25
-    // Opt-out = 2.49
-    // Efficacy(self)=6.88, Risk(self)=-5.21, Cost(self)=-0.396
-    const uPlan_CS = -0.25
-      + (6.88 * attrs.efficacySelf)
-      + (-5.21 * attrs.riskSelf)
-      + (-0.396 * attrs.costSelf);
-    const uOptOut_CS = 2.49;
-
-    planProbClass2 = calcChoiceProb(uPlan_CS, uOptOut_CS);
+    // Class 2 (Cost-Sensitive)
+    // asc=-0.1010, optout=0.9865, efficacy=2.7260, risk=-2.0641, cost=-0.3963
+    const uPlan_C2 = -0.1010
+      + (2.7260)*effS
+      + (-2.0641)*rS
+      + (-0.3963)*cS;
+    const uOptOut_C2 = 0.9865;
+    planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
   }
-  else if (expChoice === "2") {
-    // Experiment 2
-    // Class1 (Equity-Focused):
-    // ASC = -0.82
-    // Opt-out = -18.15
-    // Efficacy(self)=21.03, Risk(self)=-14.61, Cost(self)=-0.094
-    const uPlan_EF = -0.82
-      + (21.03 * attrs.efficacySelf)
-      + (-14.61 * attrs.riskSelf)
-      + (-0.094 * attrs.costSelf);
-    const uOptOut_EF = -18.15;
+  else if (expChoice === '2') {
+    // =============== Experiment 2 ===============
+    // Class 1 (Equity-Focused)
+    // asc=-0.0772, optout=-1.7062, efficacy=1.9771, risk=-1.3736, cost=-0.0940
+    const uPlan_C1 = -0.0772
+      + (1.9771)*effS
+      + (-1.3736)*rS
+      + (-0.0940)*cS;
+    const uOptOut_C1 = -1.7062;
+    planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
-    planProbClass1 = calcChoiceProb(uPlan_EF, uOptOut_EF);
-
-    // Class2 (Cost-Sensitive):
-    // ASC = 0.18
-    // Opt-out = 4.62
-    // Efficacy(self)=7.15, Risk(self)=0.15, Cost(self)=-0.363
-    const uPlan_CS = 0.18
-      + (7.15 * attrs.efficacySelf)
-      + (0.15 * attrs.riskSelf)
-      + (-0.363 * attrs.costSelf);
-    const uOptOut_CS = 4.62;
-
-    planProbClass2 = calcChoiceProb(uPlan_CS, uOptOut_CS);
+    // Class 2 (Cost-Sensitive)
+    // asc=0.0654, optout=1.6773, efficacy=2.5939, risk=0.0550, cost=-0.3627
+    const uPlan_C2 = 0.0654
+      + (2.5939)*effS
+      + (0.0550)*rS
+      + (-0.3627)*cS;
+    const uOptOut_C2 = 1.6773;
+    planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
   }
   else {
-    // Experiment 3
-    // Class1 (Equity-Focused):
-    // ASC = -0.81
-    // Opt-out = -40.78
-    // Efficacy(self)=33.29, Risk(self)=-17.52, Cost(self)=-0.039
-    // Efficacy(others)=12.89, Risk(others)=-22.16, Cost(others)=-0.90
-    const uPlan_EF = -0.81
-      + (33.29 * attrs.efficacySelf)
-      + (-17.52 * attrs.riskSelf)
-      + (-0.039 * attrs.costSelf)
-      + (12.89 * attrs.efficacyOthers)
-      + (-22.16 * attrs.riskOthers)
-      + (-0.90 * attrs.costOthers);
-    const uOptOut_EF = -40.78;
+    // =============== Experiment 3 ===============
+    // Class 1 (Equity-Focused)
+    // asc=-0.0318, optout=-1.6011
+    // efficacy-self=1.3070, risk-self=-0.6877
+    // efficacy-others=0.5063, risk-others=-0.8702
+    // cost-others=-0.0352, cost-self=-0.0393
+    const uPlan_C1 = -0.0318
+      + (1.3070)*effS
+      + (-0.6877)*rS
+      + (-0.0393)*cS
+      + (0.5063)*effO
+      + (-0.8702)*rO
+      + (-0.0352)*cO;
+    const uOptOut_C1 = -1.6011;
+    planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
-    planProbClass1 = calcChoiceProb(uPlan_EF, uOptOut_EF);
-
-    // Class2 (Self-Focused):
-    // ASC = -0.82
-    // Opt-out = 4.16
-    // Efficacy(self)=7.10, Risk(self)=-6.69, Cost(self)=-0.353
-    // Efficacy(others)=1.44, Risk(others)=0.28, Cost(others)=-0.23
-    const uPlan_SF = -0.82
-      + (7.10 * attrs.efficacySelf)
-      + (-6.69 * attrs.riskSelf)
-      + (-0.353 * attrs.costSelf)
-      + (1.44 * attrs.efficacyOthers)
-      + (0.28 * attrs.riskOthers)
-      + (-0.23 * attrs.costOthers);
-    const uOptOut_SF = 4.16;
-
-    planProbClass2 = calcChoiceProb(uPlan_SF, uOptOut_SF);
+    // Class 2 (Self-Focused)
+    // asc=-0.2911, optout=1.4660
+    // efficacy-self=2.5028, risk-self=-2.3606
+    // efficacy-others=0.5076, risk-others=0.1003
+    // cost-others=-0.0794, cost-self=-0.3527
+    const uPlan_C2 = -0.2911
+      + (2.5028)*effS
+      + (-2.3606)*rS
+      + (-0.3527)*cS
+      + (0.5076)*effO
+      + (0.1003)*rO
+      + (-0.0794)*cO;
+    const uOptOut_C2 = 1.4660;
+    planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
   }
 
-  // Weighted Probability of Plan
-  const overallPlanProb = (pC1 * planProbClass1) + (pC2 * planProbClass2);
-  return overallPlanProb;
+  // Weighted final
+  return pC1 * planProbC1 + pC2 * planProbC2;
 }
 
-/************************************************************
- * calcChoiceProb
- * For a given class, we have:
- *  Probability(Plan) = exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
- ************************************************************/
-function calcChoiceProb(uPlan, uOptOut) {
+// logisticChoice => Probability(Plan) = exp(UPlan) / [exp(UPlan) + exp(UOpt)]
+function logisticChoice(uPlan, uOpt) {
   const expPlan = Math.exp(uPlan);
-  const expOut = Math.exp(uOptOut);
-  return expPlan / (expPlan + expOut);
+  const expOpt = Math.exp(uOpt);
+  return expPlan / (expPlan + expOpt);
 }
 
-/************************************************************
- * displayResults
- * Format the output in the appropriate sections
- ************************************************************/
-function displayResults(classData, planProb) {
-  const classProbabilitiesEl = document.getElementById('classProbabilities');
-  const uptakeProbabilityEl = document.getElementById('uptakeProbability');
+/******************************************************
+ * Display results -> update text + bar charts
+ ******************************************************/
+function displayResults(label1, label2, pC1, pC2, planProb) {
+  // membership
+  classProbabilitiesEl.textContent = 
+    `${label1}: ${(pC1*100).toFixed(2)}%\n` + 
+    `${label2}: ${(pC2*100).toFixed(2)}%`;
 
-  // Construct a text representation of class membership
-  const [label1, label2] = classData.labels;
-  const [prob1, prob2] = classData.probs;
+  // uptake
+  uptakeProbabilityEl.textContent = 
+    `Plan Uptake Probability (vs. Opt-Out): ${(planProb*100).toFixed(2)}%`;
 
-  const membershipString = 
-    `${label1}: ${(prob1 * 100).toFixed(2)}%\n` +
-    `${label2}: ${(prob2 * 100).toFixed(2)}%`;
+  // Draw bar charts
+  if (membershipChart) membershipChart.destroy();
+  if (uptakeChart) uptakeChart.destroy();
 
-  classProbabilitiesEl.textContent = membershipString;
+  // membership bar chart
+  membershipChart = new Chart(membershipCtx, {
+    type: 'bar',
+    data: {
+      labels: [label1, label2],
+      datasets: [{
+        label: 'Class Membership (%)',
+        data: [(pC1*100), (pC2*100)],
+        backgroundColor: ['#3498db', '#f39c12']
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      scales: {
+        x: {
+          min: 0,
+          max: 100,
+          title: { display: true, text: 'Percentage' }
+        }
+      },
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
 
-  const uptakeString = 
-    `Probability of Plan Uptake (vs. Opt-Out): ${(planProb * 100).toFixed(2)}%`;
-  uptakeProbabilityEl.textContent = uptakeString;
+  // uptake bar chart
+  uptakeChart = new Chart(uptakeCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Plan Uptake Probability'],
+      datasets: [{
+        label: 'Probability (%)',
+        data: [(planProb*100)],
+        backgroundColor: ['#27ae60']
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      scales: {
+        x: {
+          min: 0,
+          max: 100,
+          title: { display: true, text: 'Percentage' }
+        }
+      },
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
 }
+
+/******************************************************
+ * We'll load a minimal CDN for Chart.js inside script
+ * if you'd prefer a local import, you can do so. 
+ ******************************************************/
+// Dynamically insert Chart.js
+const scriptChart = document.createElement('script');
+scriptChart.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+document.head.appendChild(scriptChart);
