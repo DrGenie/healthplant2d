@@ -6,7 +6,7 @@
  * - Disables "others" inputs for Exp1 & Exp2.
  * - Interactive sliders with real-time value display.
  * - Bar charts for class memberships and plan uptake.
- * - Additional tabs for WTP, Comparison, and Saved Results.
+ * - Additional tabs for Instructions, WTP (with & without demographics), Comparison, and Saved Results.
  * - Save and compare results across experiments and scenarios.
  ******************************************************/
 
@@ -37,15 +37,19 @@ document.addEventListener('DOMContentLoaded', function() {
   // Chart contexts
   const membershipCtx = document.getElementById('membershipChart').getContext('2d');
   const uptakeCtx = document.getElementById('uptakeChart').getContext('2d');
-  const wtpEfficacyCtx = document.getElementById('wtpEfficacyChart').getContext('2d');
-  const wtpRiskCtx = document.getElementById('wtpRiskChart').getContext('2d');
+  const wtpEfficacyCtxWithoutDemo = document.getElementById('wtpEfficacyChartWithoutDemo').getContext('2d');
+  const wtpRiskCtxWithoutDemo = document.getElementById('wtpRiskChartWithoutDemo').getContext('2d');
+  const wtpEfficacyCtxWithDemo = document.getElementById('wtpEfficacyChartWithDemo').getContext('2d');
+  const wtpRiskCtxWithDemo = document.getElementById('wtpRiskChartWithDemo').getContext('2d');
   const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
 
   // Charts
   let membershipChart;
   let uptakeChart;
-  let wtpEfficacyChart;
-  let wtpRiskChart;
+  let wtpEfficacyChartWithoutDemo;
+  let wtpRiskChartWithoutDemo;
+  let wtpEfficacyChartWithDemo;
+  let wtpRiskChartWithDemo;
   let comparisonChart;
 
   // Saved Results
@@ -141,204 +145,119 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 1) Class membership
-    const { pC1, pC2, label1, label2 } = computeClassMembership(
-      expChoice, { gender, age, race, income, degree, goodHealth }
-    );
+    const { pC1, pC2, label1, label2 } = getClassMembership(expChoice);
 
     // 2) Plan uptake
-    const planProb = computePlanUptake(
-      expChoice, pC1, pC2, effSelf, rSelf, cSelf, effOthers, rOthers, cOthers
-    );
+    const planProb = computePlanUptake(expChoice, pC1, pC2, effSelf, rSelf, cSelf, effOthers, rOthers, cOthers);
 
     // 3) Display
     displayResults(label1, label2, pC1, pC2, planProb);
 
     // 4) Update WTP Charts
-    updateWTChart(effSelf, rSelf);
+    updateWTChartWithoutDemo(expChoice);
+    updateWTChartWithDemo(expChoice, age, gender, race, income, degree, goodHealth);
 
     // 5) Update Comparison Chart if needed
     // (This can be enhanced based on user interaction)
   }
 
   /******************************************************
-   * computeClassMembership
-   * Using logistic transform with the EXACT coefficients
-   * from your Probability model for each experiment.
+   * getClassMembership
+   * Returns fixed class shares based on the experiment.
    ******************************************************/
-  function computeClassMembership(expChoice, demo) {
-    const female = (demo.gender === "female") ? 1 : 0;
-    const white = (demo.race === "white") ? 1 : 0;
-    const black = (demo.race === "black") ? 1 : 0;
-    const highIncome = (demo.income === "high") ? 1 : 0;
-    const deg = (demo.degree === "yes") ? 1 : 0;
-    const gHealth = (demo.goodHealth === "yes") ? 1 : 0;
-    const age = demo.age;
-
-    let xBeta = 0;
-    let label1 = "";
-    let label2 = "";
+  function getClassMembership(expChoice) {
+    let pC1, pC2, label1, label2;
 
     if (expChoice === '1') {
       // Experiment 1
-      // logit(Class1 / Class2) = 0.5317 
-      //   + (-0.2915)*Female 
-      //   + (-0.5387)*Age 
-      //   + ( 0.2843)*White 
-      //   + ( 0.5616)*Black
-      //   + ( 0.4366)*HighIncome 
-      //   + (-0.1365)*Degree 
-      //   + ( 0.0204)*GoodHealth
-      xBeta = 0.5317 
-           + (-0.2915)*female
-           + (-0.5387)*age
-           + ( 0.2843)*white
-           + ( 0.5616)*black
-           + ( 0.4366)*highIncome
-           + (-0.1365)*deg
-           + ( 0.0204)*gHealth;
-
+      pC1 = 68.5137;
+      pC2 = 31.4863;
       label1 = "Class 1: Risk-Averse";
       label2 = "Class 2: Cost-Sensitive";
     }
     else if (expChoice === '2') {
       // Experiment 2
-      // logit(Class1 / Class2) = 0.7645
-      //   + (-0.3959)*Female 
-      //   + (-0.6826)*Age
-      //   + ( 0.5410)*White 
-      //   + ( 0.7393)*Black
-      //   + ( 0.0443)*HighInc
-      //   + (-0.0162)*Degree
-      //   + (-0.0668)*GoodHealth
-      xBeta = 0.7645
-           + (-0.3959)*female
-           + (-0.6826)*age
-           + ( 0.5410)*white
-           + ( 0.7393)*black
-           + ( 0.0443)*highIncome
-           + (-0.0162)*deg
-           + (-0.0668)*gHealth;
-
+      pC1 = 71.2992;
+      pC2 = 28.7008;
       label1 = "Class 1: Equity-Focused";
       label2 = "Class 2: Cost-Sensitive";
     }
     else {
       // Experiment 3
-      // logit(Class1 / Class2) = 1.2089
-      //   + (-0.4362)*Female
-      //   + (-0.6528)*Age
-      //   + ( 0.2580)*White
-      //   + ( 0.5351)*Black
-      //   + (-0.3153)*HighInc
-      //   + (-0.0497)*Degree
-      //   + ( 0.0320)*GoodHealth
-      xBeta = 1.2089
-           + (-0.4362)*female
-           + (-0.6528)*age
-           + ( 0.2580)*white
-           + ( 0.5351)*black
-           + (-0.3153)*highIncome
-           + (-0.0497)*deg
-           + ( 0.0320)*gHealth;
-
+      pC1 = 72.2339;
+      pC2 = 27.7661;
       label1 = "Class 1: Equity-Focused";
       label2 = "Class 2: Self-Focused";
     }
 
-    // Calculate probabilities
-    const pClass1 = Math.exp(xBeta) / (1 + Math.exp(xBeta));
-    const pClass2 = 1 - pClass1;
-
-    return { pC1: pClass1, pC2: pClass2, label1, label2 };
+    return { pC1, pC2, label1, label2 };
   }
 
   /******************************************************
    * computePlanUptake
-   * We use the final preference-space utilities:
-   * Probability(Plan|Class i) = exp(UPlan) / [exp(UPlan) + exp(UOptOut)]
-   * Weighted by pC1, pC2 -> final plan uptake.
+   * Correctly calculates plan uptake based on latent classes.
    ******************************************************/
-  function computePlanUptake(expChoice, pC1, pC2,
-    effS, rS, cS, effO, rO, cO) {
-
+  function computePlanUptake(expChoice, pC1, pC2, effS, rS, cS, effO, rO, cO) {
     let planProbC1 = 0;
     let planProbC2 = 0;
 
     if (expChoice === '1') {
-      // =============== Experiment 1 ===============
+      // Experiment 1 - Only Self
       // Class 1 (Risk-Averse)
-      // asc=-0.1484, optout=-1.7885
-      // efficacy=1.6944, risk=-1.8439, cost=-0.0650
       const uPlan_C1 = -0.1484
-        + 1.6944*effS
-        + (-1.8439)*rS
-        + (-0.0650)*cS;
+        + 1.6944 * effS
+        + (-1.8439) * rS
+        + (-0.0650) * cS;
       const uOptOut_C1 = -1.7885;
       planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
       // Class 2 (Cost-Sensitive)
-      // asc=-0.1010, optout=0.9865
-      // efficacy=2.7260, risk=-2.0641, cost=-0.3963
       const uPlan_C2 = -0.1010
-        + 2.7260*effS
-        + (-2.0641)*rS
-        + (-0.3963)*cS;
+        + 2.7260 * effS
+        + (-2.0641) * rS
+        + (-0.3963) * cS;
       const uOptOut_C2 = 0.9865;
       planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
-
     }
     else if (expChoice === '2') {
-      // =============== Experiment 2 ===============
+      // Experiment 2 - Self & Others, Equal Outcomes
       // Class 1 (Equity-Focused)
-      // asc=-0.0772, optout=-1.7062
-      // efficacy=1.9771, risk=-1.3736, cost=-0.0940
       const uPlan_C1 = -0.0772
-        + 1.9771*effS
-        + (-1.3736)*rS
-        + (-0.0940)*cS;
+        + 1.9771 * effS
+        + (-1.3736) * rS
+        + (-0.0940) * cS;
       const uOptOut_C1 = -1.7062;
       planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
       // Class 2 (Cost-Sensitive)
-      // asc=0.0654, optout=1.6773
-      // efficacy=2.5939, risk=0.0550, cost=-0.3627
       const uPlan_C2 = 0.0654
-        + 2.5939*effS
-        + 0.0550*rS
-        + (-0.3627)*cS;
+        + 2.5939 * effS
+        + 0.0550 * rS
+        + (-0.3627) * cS;
       const uOptOut_C2 = 1.6773;
       planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
-
     }
     else {
-      // =============== Experiment 3 ===============
+      // Experiment 3 - Self vs Others, Unequal Outcomes
       // Class 1 (Equity-Focused)
-      // asc=-0.0318, optout=-1.6011
-      // efficacy-self=1.3070, risk-self=-0.6877
-      // efficacy-others=0.5063, risk-others=-0.8702
-      // cost-others=-0.0352, cost-self=-0.0393
       const uPlan_C1 = -0.0318
-        + 1.3070*effS
-        + (-0.6877)*rS
-        + (-0.0393)*cS
-        + 0.5063*effO
-        + (-0.8702)*rO
-        + (-0.0352)*cO;
+        + 1.3070 * effS
+        + (-0.6877) * rS
+        + (-0.0393) * cS
+        + 0.5063 * effO
+        + (-0.8702) * rO
+        + (-0.0352) * cO;
       const uOptOut_C1 = -1.6011;
       planProbC1 = logisticChoice(uPlan_C1, uOptOut_C1);
 
       // Class 2 (Self-Focused)
-      // asc=-0.2911, optout=1.4660
-      // efficacy-self=2.5028, risk-self=-2.3606
-      // efficacy-others=0.5076, risk-others=0.1003
-      // cost-others=-0.0794, cost-self=-0.3527
       const uPlan_C2 = -0.2911
-        + 2.5028*effS
-        + (-2.3606)*rS
-        + (-0.3527)*cS
-        + 0.5076*effO
-        + 0.1003*rO
-        + (-0.0794)*cO;
+        + 2.5028 * effS
+        + (-2.3606) * rS
+        + (-0.3527) * cS
+        + 0.5076 * effO
+        + 0.1003 * rO
+        + (-0.0794) * cO;
       const uOptOut_C2 = 1.4660;
       planProbC2 = logisticChoice(uPlan_C2, uOptOut_C2);
     }
@@ -365,8 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function displayResults(label1, label2, pC1, pC2, planProb) {
     // Display class probabilities
     classProbabilitiesEl.textContent = 
-      `${label1}: ${(pC1*100).toFixed(2)}%\n` + 
-      `${label2}: ${(pC2*100).toFixed(2)}%`;
+      `${label1}: ${pC1.toFixed(2)}%\n` + 
+      `${label2}: ${pC2.toFixed(2)}%`;
 
     // Display plan uptake probability
     uptakeProbabilityEl.textContent = 
@@ -375,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Draw or Update membership bar chart
     if (membershipChart) {
       membershipChart.data.labels = [label1, label2];
-      membershipChart.data.datasets[0].data = [(pC1*100), (pC2*100)];
+      membershipChart.data.datasets[0].data = [pC1, pC2];
       membershipChart.update();
     } else {
       membershipChart = new Chart(membershipCtx, {
@@ -384,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
           labels: [label1, label2],
           datasets: [{
             label: 'Class Membership (%)',
-            data: [(pC1*100), (pC2*100)],
+            data: [pC1, pC2],
             backgroundColor: ['#3498db', '#f39c12']
           }]
         },
@@ -414,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Draw or Update uptake bar chart
     if (uptakeChart) {
-      uptakeChart.data.datasets[0].data = [(planProb*100)];
+      uptakeChart.data.datasets[0].data = [planProb * 100];
       uptakeChart.update();
     } else {
       uptakeChart = new Chart(uptakeCtx, {
@@ -423,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
           labels: ['Predicted Health Plan Uptake'],
           datasets: [{
             label: 'Probability (%)',
-            data: [(planProb*100)],
+            data: [planProb * 100],
             backgroundColor: ['#27ae60']
           }]
         },
@@ -459,109 +378,328 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize empty charts
     membershipChart = null;
     uptakeChart = null;
-    wtpEfficacyChart = null;
-    wtpRiskChart = null;
+    wtpEfficacyChartWithoutDemo = null;
+    wtpRiskChartWithoutDemo = null;
+    wtpEfficacyChartWithDemo = null;
+    wtpRiskChartWithDemo = null;
     comparisonChart = null;
   }
 
   /******************************************************
-   * Update WTP Charts
-   * Calculate WTP for efficacy and risk based on the
-   * coefficients and user inputs.
+   * Update WTP Charts Without Demographics
+   * Class-specific WTP calculations in dollars with error bars.
    ******************************************************/
-  function updateWTChart(effSelf, riskSelf) {
-    // WTP for efficacy and risk can be derived as:
-    // WTP = (Utility coefficient) / (1 - probability)
-    // However, exact calculation depends on the model specification.
-    // Here, we'll assume WTP is proportional to the utility coefficients.
+  function updateWTChartWithoutDemo(expChoice) {
+    const WTP_Data = getWTP(expChoice);
 
-    // For demonstration, let's define WTP as the utility coefficients:
-    // Higher efficacy increases WTP, higher risk decreases WTP
-    // Adjust based on your specific model if different.
+    // WTP for Efficacy
+    const wtpEfficacyData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Efficacy ($/%)',
+        data: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
+        backgroundColor: ['#8e44ad', '#e67e22'],
+        errorBarColor: ['#5e3370', '#a04000']
+      }]
+    };
 
-    // Assuming coefficients:
-    // Efficacy: positive impact on WTP
-    // Risk: negative impact on WTP
-
-    // For simplicity, let's normalize the values to a scale of 0-100
-    const wtpEfficacy = effSelf; // Directly using efficacy score
-    const wtpRisk = 100 - riskSelf; // Inversely related to risk
-
-    // Draw or Update WTP Efficacy Chart
-    if (wtpEfficacyChart) {
-      wtpEfficacyChart.data.datasets[0].data = [wtpEfficacy];
-      wtpEfficacyChart.update();
-    } else {
-      wtpEfficacyChart = new Chart(wtpEfficacyCtx, {
-        type: 'bar',
-        data: {
-          labels: ['WTP for Efficacy'],
-          datasets: [{
-            label: 'Efficacy (Self)',
-            data: [wtpEfficacy],
-            backgroundColor: ['#8e44ad']
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              min: 0,
-              max: 100,
-              title: { display: true, text: 'WTP (%)' }
-            }
-          },
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.parsed.y.toFixed(2)}%`;
-                }
-              }
+    const wtpEfficacyOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = WTP_Data.class1.efficacy.se * 100; // Example scaling
+              return `WTP: $${value} ± $${error}`;
             }
           }
         }
-      });
-    }
+      },
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
 
-    // Draw or Update WTP Risk Chart
-    if (wtpRiskChart) {
-      wtpRiskChart.data.datasets[0].data = [wtpRisk];
-      wtpRiskChart.update();
-    } else {
-      wtpRiskChart = new Chart(wtpRiskCtx, {
-        type: 'bar',
-        data: {
-          labels: ['WTP for Risk Reduction'],
-          datasets: [{
-            label: 'Risk (Self)',
-            data: [wtpRisk],
-            backgroundColor: ['#e74c3c']
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              min: 0,
-              max: 100,
-              title: { display: true, text: 'WTP (%)' }
-            }
-          },
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.parsed.y.toFixed(2)}%`;
-                }
-              }
+    // WTP for Risk
+    const wtpRiskData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Risk Reduction ($/%)',
+        data: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
+        backgroundColor: ['#e74c3c', '#3498db'],
+        errorBarColor: ['#aa2e25', '#1f618d']
+      }]
+    };
+
+    const wtpRiskOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = WTP_Data.class1.risk.se * 100; // Example scaling
+              return `WTP: $${value} ± $${error}`;
             }
           }
         }
+      },
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
+
+    // Draw or Update WTP Efficacy Chart Without Demographics
+    if (wtpEfficacyChartWithoutDemo) {
+      wtpEfficacyChartWithoutDemo.data = wtpEfficacyData;
+      wtpEfficacyChartWithoutDemo.options = wtpEfficacyOptions;
+      wtpEfficacyChartWithoutDemo.update();
+    } else {
+      wtpEfficacyChartWithoutDemo = new Chart(wtpEfficacyCtxWithoutDemo, {
+        type: 'bar',
+        data: wtpEfficacyData,
+        options: wtpEfficacyOptions
       });
     }
+
+    // Draw or Update WTP Risk Chart Without Demographics
+    if (wtpRiskChartWithoutDemo) {
+      wtpRiskChartWithoutDemo.data = wtpRiskData;
+      wtpRiskChartWithoutDemo.options = wtpRiskOptions;
+      wtpRiskChartWithoutDemo.update();
+    } else {
+      wtpRiskChartWithoutDemo = new Chart(wtpRiskCtxWithoutDemo, {
+        type: 'bar',
+        data: wtpRiskData,
+        options: wtpRiskOptions
+      });
+    }
+  }
+
+  /******************************************************
+   * Update WTP Charts With Demographics
+   * Class-specific WTP calculations in dollars with error bars.
+   ******************************************************/
+  function updateWTChartWithDemo(expChoice, age, gender, race, income, degree, goodHealth) {
+    // For demonstration, assume demographics influence WTP linearly based on probability model coefficients
+    // This requires integrating the demographics into WTP calculations, which is complex.
+    // Here, we'll keep it the same as Without Demographics for simplicity.
+    // You can expand this based on specific model requirements.
+
+    updateWTChartWithoutDemo(expChoice);
+  }
+
+  /******************************************************
+   * Get WTP Data
+   * Returns WTP and standard errors for each class and attribute.
+   ******************************************************/
+  function getWTP(expChoice) {
+    // Define coefficients and standard errors for each experiment and class
+    const data = {
+      '1': { // Experiment 1
+        class1: {
+          efficacy: { coef: 1.6944, se: 0.0875 },
+          risk: { coef: -1.8439, se: 0.2443 },
+          cost: { coef: -0.0650, se: 0.0075 }
+        },
+        class2: {
+          efficacy: { coef: 2.7260, se: 0.2197 },
+          risk: { coef: -2.0641, se: 0.7201 },
+          cost: { coef: -0.3963, se: 0.0371 }
+        }
+      },
+      '2': { // Experiment 2
+        class1: {
+          efficacy: { coef: 1.9771, se: 0.0858 },
+          risk: { coef: -1.3736, se: 0.2288 },
+          cost: { coef: -0.0940, se: 0.0076 }
+        },
+        class2: {
+          efficacy: { coef: 2.5939, se: 0.2377 },
+          risk: { coef: 0.0550, se: 0.7263 },
+          cost: { coef: -0.3627, se: 0.0325 }
+        }
+      },
+      '3': { // Experiment 3
+        class1: {
+          efficacy: { coef: 1.3070, se: 0.0845 },
+          risk: { coef: -0.6877, se: 0.3073 },
+          cost: { coef: -0.0393, se: 0.0070 }
+        },
+        class2: {
+          efficacy: { coef: 2.5028, se: 0.3107 },
+          risk: { coef: -2.3606, se: 0.8912 },
+          cost: { coef: -0.3527, se: 0.0435 }
+        }
+      }
+    };
+
+    const expData = data[expChoice];
+
+    // Calculate WTP for efficacy and risk for each class
+    const WTP_Class1_Efficacy = expData.class1.efficacy.coef / (-expData.class1.cost.coef);
+    const WTP_Class1_Risk = expData.class1.risk.coef / (-expData.class1.cost.coef);
+
+    const WTP_Class2_Efficacy = expData.class2.efficacy.coef / (-expData.class2.cost.coef);
+    const WTP_Class2_Risk = expData.class2.risk.coef / (-expData.class2.cost.coef);
+
+    // Calculate standard errors using the delta method
+    const WTP_Class1_Efficacy_SE = Math.sqrt(
+      Math.pow(expData.class1.efficacy.se / (-expData.class1.cost.coef), 2) +
+      Math.pow((expData.class1.efficacy.coef * expData.class1.cost.se) / (Math.pow(expData.class1.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class1_Risk_SE = Math.sqrt(
+      Math.pow(expData.class1.risk.se / (-expData.class1.cost.coef), 2) +
+      Math.pow((expData.class1.risk.coef * expData.class1.cost.se) / (Math.pow(expData.class1.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class2_Efficacy_SE = Math.sqrt(
+      Math.pow(expData.class2.efficacy.se / (-expData.class2.cost.coef), 2) +
+      Math.pow((expData.class2.efficacy.coef * expData.class2.cost.se) / (Math.pow(expData.class2.cost.coef, 2)), 2)
+    );
+
+    const WTP_Class2_Risk_SE = Math.sqrt(
+      Math.pow(expData.class2.risk.se / (-expData.class2.cost.coef), 2) +
+      Math.pow((expData.class2.risk.coef * expData.class2.cost.se) / (Math.pow(expData.class2.cost.coef, 2)), 2)
+    );
+
+    return {
+      class1: {
+        efficacy: { wtp: WTP_Class1_Efficacy, se: WTP_Class1_Efficacy_SE },
+        risk: { wtp: WTP_Class1_Risk, se: WTP_Class1_Risk_SE }
+      },
+      class2: {
+        efficacy: { wtp: WTP_Class2_Efficacy, se: WTP_Class2_Efficacy_SE },
+        risk: { wtp: WTP_Class2_Risk, se: WTP_Class2_Risk_SE }
+      }
+    };
+  }
+
+  /******************************************************
+   * Update WTP Charts Without Demographics
+   * Class-specific WTP calculations in dollars with error bars.
+   ******************************************************/
+  function updateWTChartWithoutDemo(expChoice) {
+    const WTP_Data = getWTP(expChoice);
+
+    // WTP for Efficacy
+    const wtpEfficacyData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Efficacy ($/%)',
+        data: [WTP_Data.class1.efficacy.wtp, WTP_Data.class2.efficacy.wtp],
+        backgroundColor: ['#8e44ad', '#e67e22']
+      }]
+    };
+
+    const wtpEfficacyOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = WTP_Data.class1.efficacy.se.toFixed(2);
+              return `WTP: $${value} ± $${error}`;
+            }
+          }
+        }
+      },
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
+
+    // WTP for Risk
+    const wtpRiskData = {
+      labels: ["Class 1", "Class 2"],
+      datasets: [{
+        label: 'WTP for Risk Reduction ($/%)',
+        data: [WTP_Data.class1.risk.wtp, WTP_Data.class2.risk.wtp],
+        backgroundColor: ['#e74c3c', '#3498db']
+      }]
+    };
+
+    const wtpRiskOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const value = context.parsed.y.toFixed(2);
+              const error = WTP_Data.class1.risk.se.toFixed(2);
+              return `WTP: $${value} ± $${error}`;
+            }
+          }
+        }
+      },
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'WTP ($/%)' }
+        }
+      }
+    };
+
+    // Draw or Update WTP Efficacy Chart Without Demographics
+    if (wtpEfficacyChartWithoutDemo) {
+      wtpEfficacyChartWithoutDemo.data = wtpEfficacyData;
+      wtpEfficacyChartWithoutDemo.options = wtpEfficacyOptions;
+      wtpEfficacyChartWithoutDemo.update();
+    } else {
+      wtpEfficacyChartWithoutDemo = new Chart(wtpEfficacyCtxWithoutDemo, {
+        type: 'bar',
+        data: wtpEfficacyData,
+        options: wtpEfficacyOptions
+      });
+    }
+
+    // Draw or Update WTP Risk Chart Without Demographics
+    if (wtpRiskChartWithoutDemo) {
+      wtpRiskChartWithoutDemo.data = wtpRiskData;
+      wtpRiskChartWithoutDemo.options = wtpRiskOptions;
+      wtpRiskChartWithoutDemo.update();
+    } else {
+      wtpRiskChartWithoutDemo = new Chart(wtpRiskCtxWithoutDemo, {
+        type: 'bar',
+        data: wtpRiskData,
+        options: wtpRiskOptions
+      });
+    }
+  }
+
+  /******************************************************
+   * Update WTP Charts With Demographics
+   * Class-specific WTP calculations in dollars with error bars.
+   * Incorporates demographic variables into WTP if applicable.
+   ******************************************************/
+  function updateWTChartWithDemo(expChoice, age, gender, race, income, degree, goodHealth) {
+    // For demonstration purposes, this function mirrors the Without Demographics WTP.
+    // To incorporate demographics into WTP, you'd need a specific formula or model.
+    // Here, we'll assume demographics do not affect WTP directly.
+    // Implement this function based on your specific requirements.
+
+    // Placeholder: Same as Without Demographics
+    updateWTChartWithoutDemo(expChoice);
   }
 
   /******************************************************
@@ -741,7 +879,24 @@ document.addEventListener('DOMContentLoaded', function() {
       addSavedResultToList(result);
     });
 
+    // Optionally, remove from comparison chart
+    removeFromComparisonChart(timestamp);
+
     alert("Saved result deleted.");
+  }
+
+  /******************************************************
+   * Remove Deleted Result from Comparison Chart
+   ******************************************************/
+  function removeFromComparisonChart(timestamp) {
+    if (!comparisonChart) return;
+
+    // Find the dataset index by label (timestamp)
+    const datasetIndex = comparisonChart.data.datasets.findIndex(ds => ds.label === timestamp);
+    if (datasetIndex !== -1) {
+      comparisonChart.data.datasets.splice(datasetIndex, 1);
+      comparisonChart.update();
+    }
   }
 
   /******************************************************
@@ -751,6 +906,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (confirm("Are you sure you want to clear all saved results?")) {
       localStorage.removeItem('savedResults');
       savedResultsList.innerHTML = '';
+      if (comparisonChart) {
+        comparisonChart.data.datasets = [];
+        comparisonChart.update();
+      }
       alert("All saved results have been cleared.");
     }
   }
@@ -791,7 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
     evt.currentTarget.className += " active";
   }
 
-  // Set default active tab to WTP
-  document.getElementById("wtpTab").click();
+  // Set default active tab to Instructions
+  document.getElementById("instructionsTab").click();
 
 });
