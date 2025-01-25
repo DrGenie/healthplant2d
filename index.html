@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="styles.css" />
   <!-- Load Chart.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Load Chart.js Error Bars Plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-error-bars@1.0.0/dist/chartjs-plugin-error-bars.min.js"></script>
 </head>
 <body>
   <header>
@@ -53,20 +55,35 @@
       <!-- WTP Without Demographics Tab -->
       <div id="WTPWithoutDemographics" class="tabcontent">
         <h2>Willingness To Pay (WTP) Without Demographics</h2>
-        <canvas id="wtpEfficacyChartWithoutDemo" width="400" height="200"></canvas>
-        <canvas id="wtpRiskChartWithoutDemo" width="400" height="200"></canvas>
+        <div class="wtp-container">
+          <canvas id="wtpEfficacyChartWithoutDemo" width="400" height="200"></canvas>
+          <canvas id="wtpRiskChartWithoutDemo" width="400" height="200"></canvas>
+          <button id="downloadWTPWithoutDemo" class="download-btn">Download WTP Without Demographics</button>
+        </div>
       </div>
 
       <!-- WTP With Demographics Tab -->
       <div id="WTPWithDemographics" class="tabcontent">
         <h2>Willingness To Pay (WTP) With Demographics</h2>
-        <canvas id="wtpEfficacyChartWithDemo" width="400" height="200"></canvas>
-        <canvas id="wtpRiskChartWithDemo" width="400" height="200"></canvas>
+        <div class="wtp-container">
+          <canvas id="wtpEfficacyChartWithDemo" width="400" height="200"></canvas>
+          <canvas id="wtpRiskChartWithDemo" width="400" height="200"></canvas>
+          <canvas id="wtpOthersChartWithDemo" width="400" height="200"></canvas>
+          <button id="downloadWTPWithDemo" class="download-btn">Download WTP With Demographics</button>
+        </div>
       </div>
 
       <!-- Comparison Tab -->
       <div id="Comparison" class="tabcontent">
         <h2>Comparison of Scenarios</h2>
+        <div class="comparison-controls">
+          <label for="comparisonSelect">Select Saved Results to Compare:</label>
+          <select id="comparisonSelect" multiple>
+            <!-- Options will be populated dynamically -->
+          </select>
+          <button id="compareBtn">Compare Selected</button>
+          <button id="downloadComparison" class="download-btn">Download Comparison Chart</button>
+        </div>
         <canvas id="comparisonChart" width="600" height="400"></canvas>
       </div>
 
